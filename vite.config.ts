@@ -8,9 +8,9 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 
 // https://vite.dev/config/
 export default defineConfig({
-  // For GitHub Pages project sites the app is served from /<repo>/; the deploy
-  // workflow passes BASE_PATH. Defaults to '/' for local dev and user/org pages.
-  base: process.env.BASE_PATH || '/',
+  // The editor is served under /app/ (flow.unfla.sh/app, via nginx on the VPS).
+  // Override with BASE_PATH to host it elsewhere.
+  base: process.env.BASE_PATH || '/app/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
@@ -18,16 +18,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-    },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        // Marketing landing page at `/`
-        main: path.resolve(__dirname, 'index.html'),
-        // The editor SPA at `/app/`
-        app: path.resolve(__dirname, 'app/index.html'),
-      },
     },
   },
   server: {
