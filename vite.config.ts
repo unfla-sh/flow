@@ -20,6 +20,16 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      input: {
+        // Marketing landing page at `/`
+        main: path.resolve(__dirname, 'index.html'),
+        // The editor SPA at `/app/`
+        app: path.resolve(__dirname, 'app/index.html'),
+      },
+    },
+  },
   server: {
     // allow access through Cloudflare quick tunnels
     allowedHosts: ['.trycloudflare.com'],
