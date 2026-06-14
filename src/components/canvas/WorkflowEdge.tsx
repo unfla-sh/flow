@@ -1,0 +1,235 @@
+import {
+  BaseEdge,
+  EdgeLabelRenderer,
+  getBezierPath,
+  getSmoothStepPath,
+  type EdgeProps,
+  type XYPosition,
+} from '@xyflow/react'
+import { useCallback, useMemo } from 'react'
+
+import { useReactFlow } from '@xyflow/react'
+import { useWorkflowStore } from '@/store/workflowStore'
+import type { WorkflowEdge } from '@/types/workflow'
+
+function smoothPath(points: XYPosition[]): string {
+  if (points.length < 2) return ''
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
+  }
+
+  let path = `M ${points[0].x} ${points[0].y}`
+  for (let index = 1; index < points.length - 1; index += 1) {
+    const current = points[index]
+    const next = points[index + 1]
+    const mid = { x: (current.x + next.x) / 2, y: (current.y + next.y) / 2 }
+    path += ` Q ${current.x} ${current.y} ${mid.x} ${mid.y}`
+  }
+  const last = points[points.length - 1]
+  path += ` L ${last.x} ${last.y}`
+  return path
+}
+
+function midpoint(points: XYPosition[]): XYPosition {
+  if (points.length === 0) return { x: 0, y: 0 }
+  const middle = Math.floor(points.length / 2)
+  return points[middle]
+}
+
+function splitMidpoint(points: XYPosition[]): XYPosition {
+  if (points.length < 2) return midpoint(points)
+  const middle = Math.floor(points.length / 2)
+  if (points.length % 2 === 1) return points[middle]
+  return {
+    x: (points[middle - 1].x + points[middle].x) / 2,
+    y: (points[middle - 1].y + points[middle].y) / 2,
+  }
+}
+
+function selfLoopPath(sourceX: number, sourceY: number, targetX: number, targetY: number): string {
+  const top = Math.min(sourceY, targetY)
+  const right = Math.max(sourceX, targetX)
+  return [
+    `M ${sourceX} ${sourceY}`,
+    `C ${right + 110} ${top - 90}`,
+    `${right + 140} ${top + 120}`,
+    `${targetX} ${targetY}`,
+  ].join(' ')
+}
+
+function clamp(value: number | undefined, fallback: number, min: number, max: number): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) return fallback
+  return Math.min(max, Math.max(min, value))
+}
+
+export function WorkflowEdge({
+  id,
+  source,
+  target,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  label,
+  selected,
+  animated,
+}: EdgeProps<WorkflowEdge>) {
+  const updateEdge = useWorkflowStore((state) => state.updateEdge)
+  const presentationMode = useWorkflowStore((state) => state.presentationMode)
+  const { screenToFlowPosition } = useReactFlow()
+  const stroke = data?.style?.stroke ?? '#64748b'
+  const lineWidth = clamp(data?.style?.lineWidth, 1.75, 1, 8)
+  const arrowSize = clamp(data?.style?.arrowSize, 10, 6, 28)
+  const route = data?.route
+  const bendPoints = useMemo(
+    () => (route?.kind === 'manual' ? (route.points ?? []) : []),
+    [route],
+  )
+  const manualPoints = [
+    { x: sourceX, y: sourceY },
+    ...bendPoints,
+    { x: targetX, y: targetY },
+  ]
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '')
+  const markerEndId = `workflow-arrow-end-${safeId}`
+  const markerStartId = `workflow-arrow-start-${safeId}`
+  const bidirectional = data?.style?.bidirectional === true
+  const showEndArrow = !bidirectional && data?.style?.arrow === true
+  const showStartArrow = !bidirectional && data?.style?.arrowStart === true
+
+  const routeArgs = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }
+  const [autoPath, labelX, labelY] =
+    source === target
+      ? [selfLoopPath(sourceX, sourceY, targetX, targetY), sourceX + 100, sourceY - 24]
+      : data?.style?.pathType === 'step'
+        ? getSmoothStepPath(routeArgs)
+        : getBezierPath(routeArgs)
+  const manualPath = smoothPath(manualPoints)
+  const path = route?.kind === 'manual' && manualPath ? manualPath : autoPath
+  const manualLabel = midpoint(manualPoints)
+  const bidirectionalMidpoint = splitMidpoint(manualPoints)
+  const bidirectionalSourcePath = smoothPath([bidirectionalMidpoint, { x: sourceX, y: sourceY }])
+  const bidirectionalTargetPath = smoothPath([bidirectionalMidpoint, { x: targetX, y: targetY }])
+
+  const movePoint = useCallback(
+    (index: number, event: React.PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault()
+      event.stopPropagation()
+      const targetEl = event.currentTarget
+      targetEl.setPointerCapture(event.pointerId)
+
+      const onMove = (moveEvent: PointerEvent) => {
+        const position = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY })
+        const points = [...bendPoints]
+        points[index] = position
+        updateEdge(id, { data: { route: { kind: 'manual', points } } })
+      }
+
+      const onUp = () => {
+        targetEl.removeEventListener('pointermove', onMove)
+        targetEl.removeEventListener('pointerup', onUp)
+        targetEl.removeEventListener('pointercancel', onUp)
+      }
+
+      targetEl.addEventListener('pointermove', onMove)
+      targetEl.addEventListener('pointerup', onUp)
+      targetEl.addEventListener('pointercancel', onUp)
+    },
+    [bendPoints, id, screenToFlowPosition, updateEdge],
+  )
+
+  return (
+    <>
+      {(bidirectional || showEndArrow || showStartArrow) && (
+        <defs>
+          {(showEndArrow || bidirectional) && (
+            <marker
+              id={markerEndId}
+              markerWidth={arrowSize}
+              markerHeight={arrowSize}
+              refX={arrowSize * 0.82}
+              refY={arrowSize / 2}
+              orient="auto"
+              markerUnits="userSpaceOnUse"
+            >
+              <path
+                d={`M 0 0 L ${arrowSize} ${arrowSize / 2} L 0 ${arrowSize} z`}
+                fill={stroke}
+              />
+            </marker>
+          )}
+          {(showStartArrow || bidirectional) && (
+            <marker
+              id={markerStartId}
+              markerWidth={arrowSize}
+              markerHeight={arrowSize}
+              refX={arrowSize * 0.18}
+              refY={arrowSize / 2}
+              orient="auto"
+              markerUnits="userSpaceOnUse"
+            >
+              {/* Apex at x=0 so, oriented along the path, it points back at the source. */}
+              <path
+                d={`M ${arrowSize} 0 L 0 ${arrowSize / 2} L ${arrowSize} ${arrowSize} z`}
+                fill={stroke}
+              />
+            </marker>
+          )}
+        </defs>
+      )}
+      {bidirectional ? (
+        <>
+          <BaseEdge
+            id={`${id}-source`}
+            path={bidirectionalSourcePath}
+            markerEnd={`url(#${markerStartId})`}
+            className={animated ? 'workflow-edge-animated' : undefined}
+            style={{ stroke, strokeWidth: selected ? lineWidth + 0.75 : lineWidth }}
+          />
+          <BaseEdge
+            id={`${id}-target`}
+            path={bidirectionalTargetPath}
+            label={label}
+            labelX={bidirectionalMidpoint.x}
+            labelY={bidirectionalMidpoint.y}
+            markerEnd={`url(#${markerEndId})`}
+            className={animated ? 'workflow-edge-animated' : undefined}
+            style={{ stroke, strokeWidth: selected ? lineWidth + 0.75 : lineWidth }}
+          />
+        </>
+      ) : (
+        <BaseEdge
+          id={id}
+          path={path}
+          label={label}
+          labelX={route?.kind === 'manual' ? manualLabel.x : labelX}
+          labelY={route?.kind === 'manual' ? manualLabel.y : labelY}
+          markerStart={showStartArrow ? `url(#${markerStartId})` : undefined}
+          markerEnd={showEndArrow ? `url(#${markerEndId})` : undefined}
+          className={animated ? 'workflow-edge-animated' : undefined}
+          style={{ stroke, strokeWidth: selected ? lineWidth + 0.75 : lineWidth }}
+        />
+      )}
+      {selected && !presentationMode && bendPoints.length > 0 && (
+        <EdgeLabelRenderer>
+          {bendPoints.map((point, index) => (
+            <button
+              key={`${id}-bend-${index}`}
+              type="button"
+              aria-label={`Move bend point ${index + 1}`}
+              title={`Bend point ${index + 1}`}
+              className="workflow-bend-point nodrag nopan absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-primary bg-background text-[9px] font-bold text-primary shadow-lg ring-2 ring-background"
+              style={{ left: point.x, top: point.y, pointerEvents: 'all' }}
+              onPointerDown={(event) => movePoint(index, event)}
+            >
+              {index + 1}
+            </button>
+          ))}
+        </EdgeLabelRenderer>
+      )}
+    </>
+  )
+}
