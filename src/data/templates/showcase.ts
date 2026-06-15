@@ -231,7 +231,7 @@ const advanced: WorkflowDoc = {
 // 4 ─ Phase frames, right-angle (step) routing & feedback loops.
 //     An execution/judgment agent loop built from grouping frames, step edges,
 //     mid-side handles for the loop-backs, and per-edge colour.
-const agentLoop: WorkflowDoc = {
+export const agentLoop: WorkflowDoc = {
   schemaVersion: 1,
   settings: {
     name: 'Tour 4 · Phases, Loops & Step Arrows',

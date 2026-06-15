@@ -14,6 +14,7 @@ import { useMemo } from 'react'
 import { computeLayout, nodeLayoutSize } from '@/lib/autoLayout'
 import { evaluateExpression } from '@/lib/expression'
 import { getCatalogEntry, nodeCatalog } from '@/data/nodeCatalog'
+import { agentLoop } from '@/data/templates/showcase'
 import {
   ROOT_FLOW_ID,
   SWITCH_DEFAULT_HANDLE,
@@ -119,6 +120,11 @@ export interface WorkflowState {
   newWorkflow: () => void
   loadDoc: (doc: WorkflowDoc, workflowId?: string | null) => void
   markSaved: (workflowId: string) => void
+}
+
+/** The document shown on a fresh first load (no saved draft): the Tour 4 demo. */
+export function buildInitialDoc(): WorkflowDoc {
+  return structuredClone(agentLoop)
 }
 
 export function buildDemoDoc(): WorkflowDoc {
@@ -374,7 +380,7 @@ function flowsToDelete(
 export const useWorkflowStore = create<WorkflowState>()(
   temporal(
     (set, get) => ({
-      doc: buildDemoDoc(),
+      doc: buildInitialDoc(),
       docRevision: 0,
       docInstanceId: crypto.randomUUID(),
       activeFlowPath: [ROOT_FLOW_ID],
