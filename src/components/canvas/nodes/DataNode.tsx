@@ -17,7 +17,7 @@ export function DataNode({ data, selected }: NodeProps<WorkflowNode>) {
       description={data.description}
       selected={selected}
       style={data.style}
-      accentClassName="bg-cyan-100 text-cyan-700"
+      accentClassName="bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
     >
       {(url || hasOutput) && (
         <div className="space-y-1 px-3 py-2">

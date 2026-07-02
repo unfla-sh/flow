@@ -18,6 +18,7 @@ import { agentLoop } from '@/data/templates/showcase'
 import {
   ROOT_FLOW_ID,
   SWITCH_DEFAULT_HANDLE,
+  TARGET_HANDLE_ID,
   type ClipboardPayload,
   type FlowDirection,
   type FlowGraph,
@@ -30,6 +31,25 @@ import {
   type WorkflowNodeData,
   type WorkflowSettings,
 } from '@/types/workflow'
+
+/**
+ * Where a connection drag started when it was dropped on empty canvas —
+ * lets addNode create the node and wire the edge in one commit.
+ */
+export interface PendingConnection {
+  nodeId: string
+  handleId?: string | null
+  handleType?: 'source' | 'target'
+}
+
+/**
+ * Plain target handles carry TARGET_HANDLE_ID purely for React Flow's hover
+ * lookup; stored edges keep the historical `null` so existing documents,
+ * the edge inspector's "auto" option, and branch checks stay untouched.
+ */
+function normalizeHandle(handleId: string | null | undefined): string | null {
+  return handleId === TARGET_HANDLE_ID ? null : (handleId ?? null)
+}
 
 /** Edge / centre a multi-selection is aligned to. */
 export type AlignDirection = 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom'
@@ -79,7 +99,7 @@ export interface WorkflowState {
   onNodesChange: (changes: NodeChange<WorkflowNode>[]) => void
   onEdgesChange: (changes: EdgeChange<WorkflowEdge>[]) => void
   onConnect: (connection: Connection) => void
-  addNode: (catalogId: string, position: XYPosition) => void
+  addNode: (catalogId: string, position: XYPosition, connectFrom?: PendingConnection) => void
   updateNodeData: (id: string, partial: Partial<WorkflowNodeData>) => void
   updateEdge: (
     id: string,
@@ -436,6 +456,10 @@ export const useWorkflowStore = create<WorkflowState>()(
             edges: addEdge(
               {
                 ...connection,
+                // The plain target handle carries an id only for React Flow's
+                // hover lookup; stored edges keep the historical null form.
+                sourceHandle: normalizeHandle(connection.sourceHandle),
+                targetHandle: normalizeHandle(connection.targetHandle),
                 id: crypto.randomUUID(),
                 type: 'workflow',
                 data: { style: { arrow: true, ...(twoWay ? { arrowStart: true } : {}) } },
@@ -446,11 +470,28 @@ export const useWorkflowStore = create<WorkflowState>()(
         )
       },
 
-      addNode: (catalogId, position) => {
+      addNode: (catalogId, position, connectFrom) => {
         const entry = getCatalogEntry(catalogId)
         if (!entry) return
         const id = crypto.randomUUID()
         const data = entry.defaultData()
+        // Annotation-only nodes have no handles, so a pending connection
+        // cannot attach to them — add the node but skip the edge.
+        const canConnect =
+          connectFrom !== undefined && entry.nodeType !== 'note' && entry.nodeType !== 'frame'
+        const backwards = connectFrom?.handleType === 'target'
+        const fromHandle = normalizeHandle(connectFrom?.handleId)
+        const newEdge: WorkflowEdge | null = canConnect
+          ? {
+              id: crypto.randomUUID(),
+              type: 'workflow',
+              source: backwards ? id : connectFrom.nodeId,
+              target: backwards ? connectFrom.nodeId : id,
+              ...(!backwards && fromHandle ? { sourceHandle: fromHandle } : {}),
+              ...(backwards && fromHandle ? { targetHandle: fromHandle } : {}),
+              data: { style: { arrow: true } },
+            }
+          : null
         set((state) => {
           let doc = state.doc
           // Sub-flow nodes get their inner flow immediately so Open always works.
@@ -494,6 +535,7 @@ export const useWorkflowStore = create<WorkflowState>()(
                     ...graph.nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
                     node,
                   ],
+                  ...(newEdge ? { edges: [...graph.edges, newEdge] } : {}),
                 },
               },
             },

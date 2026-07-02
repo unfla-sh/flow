@@ -47,6 +47,16 @@ export interface SwitchCase {
 /** Source-handle id of a switch node's fallback branch. */
 export const SWITCH_DEFAULT_HANDLE = 'default'
 
+/**
+ * Explicit id for every node's plain target handle. Without an id, React
+ * Flow's loose-mode handle lookup resolves a hovered target handle to the
+ * node's FIRST source handle (sources are listed first), so the connection
+ * preview snapped to e.g. a condition's "true" dot while hovering the
+ * target. Edges still store `targetHandle: null` for this handle — the
+ * store normalises it — so documents and the inspector are unaffected.
+ */
+export const TARGET_HANDLE_ID = 'in'
+
 export type FlowDirection = 'lr' | 'tb'
 
 export interface FlowSettings {

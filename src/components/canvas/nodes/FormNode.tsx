@@ -21,7 +21,7 @@ export function FormNode({ data, selected }: NodeProps<WorkflowNode>) {
       description={data.description}
       selected={selected}
       style={data.style}
-      accentClassName="bg-violet-100 text-violet-700"
+      accentClassName="bg-violet-100 text-violet-700 dark:bg-violet-400/15 dark:text-violet-300"
     >
       <div className="space-y-1 px-3 py-2">
         {preview.length === 0 && (

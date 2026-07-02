@@ -4,7 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 
 import { nodeCatalog } from '@/data/nodeCatalog'
 import { cn } from '@/lib/utils'
-import { useWorkflowStore } from '@/store/workflowStore'
+import { useWorkflowStore, type PendingConnection } from '@/store/workflowStore'
 
 export interface ContextMenuState {
   kind: 'node' | 'edge' | 'pane'
@@ -16,6 +16,8 @@ export interface ContextMenuState {
   flowPosition: XYPosition
   /** Whether the node target is a sub-flow node. */
   isSubflow?: boolean
+  /** Set when a connection drag was dropped on the pane: picking a node wires it up. */
+  pendingConnection?: PendingConnection
 }
 
 function MenuItem({
@@ -50,7 +52,9 @@ export function CanvasContextMenu({
   menu: ContextMenuState
   onClose: () => void
 }) {
-  const [view, setView] = useState<'main' | 'replace' | 'add'>('main')
+  const [view, setView] = useState<'main' | 'replace' | 'add'>(
+    menu.pendingConnection ? 'add' : 'main',
+  )
   const store = useWorkflowStore
 
   useEffect(() => {
@@ -66,11 +70,13 @@ export function CanvasContextMenu({
     onClose()
   }
 
-  const catalogList = (onPick: (catalogId: string) => void) => (
+  const catalogList = (onPick: (catalogId: string) => void, header?: ReactNode) => (
     <>
-      <MenuItem onSelect={() => setView('main')}>
-        <ChevronLeftIcon className="size-3.5" /> Back
-      </MenuItem>
+      {header ?? (
+        <MenuItem onSelect={() => setView('main')}>
+          <ChevronLeftIcon className="size-3.5" /> Back
+        </MenuItem>
+      )}
       <div className="-mx-1 my-1 h-px bg-border" />
       {nodeCatalog.map((entry) => {
         const Icon = entry.icon
@@ -94,7 +100,17 @@ export function CanvasContextMenu({
         {view === 'replace' && menu.targetId
           ? catalogList((catalogId) => store.getState().replaceNodeType(menu.targetId!, catalogId))
           : view === 'add'
-            ? catalogList((catalogId) => store.getState().addNode(catalogId, menu.flowPosition))
+            ? catalogList(
+                (catalogId) =>
+                  store
+                    .getState()
+                    .addNode(catalogId, menu.flowPosition, menu.pendingConnection),
+                menu.pendingConnection ? (
+                  <div className="px-2 py-1.5 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                    Add &amp; connect
+                  </div>
+                ) : undefined,
+              )
             : menu.kind === 'node'
               ? (
                 <>

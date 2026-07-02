@@ -136,6 +136,22 @@
   user-select: text;
 }
 
+/*
+ * Connection handles: keep the dots small visually, but give every handle a
+ * generous invisible hit area (the ::before box also catches pointer events,
+ * since it belongs to the handle element). Handles are already positioned
+ * by React Flow's own styles — never override their `position`.
+ */
+.react-flow__handle::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border-radius: 9999px;
+}
+.react-flow__handle:hover {
+  box-shadow: 0 0 0 3.5px oklch(0.62 0.19 256 / 0.35);
+}
+
 /* Mid-of-side connection handles: subtle until the node is hovered/selected. */
 .workflow-mid-handle {
   opacity: 0.35;
@@ -144,6 +160,28 @@
 .react-flow__node:hover .workflow-mid-handle,
 .react-flow__node.selected .workflow-mid-handle {
   opacity: 1;
+}
+
+/*
+ * While a connection is being dragged (data-connecting set by FlowCanvas):
+ * light up every handle so possible attach points are obvious, and ring the
+ * handle the drag is currently snapped to (React Flow adds `connectingto`).
+ */
+[data-connecting='true'] .react-flow__handle,
+[data-connecting='true'] .workflow-mid-handle {
+  opacity: 1;
+}
+.react-flow__handle.connectingto,
+.react-flow__handle.valid {
+  box-shadow: 0 0 0 4px oklch(0.62 0.19 256 / 0.5);
+}
+
+/* In-progress connection line: match the animated edge look. */
+.react-flow__connection-path {
+  stroke: oklch(0.62 0.19 256);
+  stroke-width: 2;
+  stroke-dasharray: 6;
+  animation: workflow-edge-dash 0.6s linear infinite;
 }
 
 /* Simulation step-through highlights. */

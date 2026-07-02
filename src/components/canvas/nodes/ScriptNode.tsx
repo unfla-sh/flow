@@ -16,7 +16,7 @@ export function ScriptNode({ data, selected }: NodeProps<WorkflowNode>) {
       description={data.description}
       selected={selected}
       style={data.style}
-      accentClassName="bg-amber-100 text-amber-700"
+      accentClassName="bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300"
     >
       <div className="px-3 py-2">
         <code className="block truncate rounded bg-muted px-1.5 py-0.5 font-mono text-[10px]">

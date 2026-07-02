@@ -10,6 +10,7 @@ import {
   type EdgeTypes,
   type NodeMouseHandler,
   type NodeTypes,
+  type OnConnectEnd,
 } from '@xyflow/react'
 import {
   useCallback,
@@ -84,6 +85,11 @@ export function FlowCanvas() {
   const updateNodeInternals = useUpdateNodeInternals()
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<ContextMenuState | null>(null)
+  const [connecting, setConnecting] = useState(false)
+  // A connect-drag that ends on the pane also fires a pane click (mouseup on
+  // the pane bubbles a click); without this flag that click would instantly
+  // close the add-and-connect menu the drop just opened.
+  const suppressPaneClick = useRef(false)
   const simActive = sim.status !== 'idle'
   const renderedNodes = useMemo(
     () =>
@@ -128,6 +134,36 @@ export function FlowCanvas() {
         y: event.clientY - (rect?.top ?? 0),
         flowPosition: screenToFlowPosition({ x: event.clientX, y: event.clientY }),
       }
+    },
+    [screenToFlowPosition],
+  )
+
+  const onConnectStart = useCallback(() => setConnecting(true), [])
+
+  // A connection dropped on empty canvas opens the add-node menu with the
+  // drag origin attached, so picking an entry creates the node pre-wired.
+  const onConnectEnd: OnConnectEnd = useCallback(
+    (event, connectionState) => {
+      setConnecting(false)
+      if (useWorkflowStore.getState().presentationMode) return
+      if (connectionState.isValid || connectionState.toNode) return
+      const { fromNode, fromHandle } = connectionState
+      if (!fromNode || !fromHandle) return
+      const { clientX, clientY } =
+        'changedTouches' in event ? event.changedTouches[0] : event
+      const rect = wrapperRef.current?.getBoundingClientRect()
+      suppressPaneClick.current = true
+      setMenu({
+        kind: 'pane',
+        x: clientX - (rect?.left ?? 0),
+        y: clientY - (rect?.top ?? 0),
+        flowPosition: screenToFlowPosition({ x: clientX, y: clientY }),
+        pendingConnection: {
+          nodeId: fromNode.id,
+          handleId: fromHandle.id ?? null,
+          handleType: fromHandle.type,
+        },
+      })
     },
     [screenToFlowPosition],
   )
@@ -202,6 +238,10 @@ export function FlowCanvas() {
   )
 
   const onPaneClick = useCallback(() => {
+    if (suppressPaneClick.current) {
+      suppressPaneClick.current = false
+      return
+    }
     clearSelection()
     setMenu(null)
   }, [clearSelection])
@@ -211,6 +251,7 @@ export function FlowCanvas() {
       ref={wrapperRef}
       className="relative h-full w-full"
       data-presentation={presentationMode ? 'true' : undefined}
+      data-connecting={connecting ? 'true' : undefined}
     >
       <ReactFlow
         key={`${docInstanceId}:${activeFlowId}`}
@@ -221,6 +262,8 @@ export function FlowCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onEdgeClick={onEdgeClick}
@@ -232,6 +275,7 @@ export function FlowCanvas() {
         onDragOver={onDragOver}
         onDrop={onDrop}
         isValidConnection={() => true}
+        connectionRadius={36}
         nodesDraggable={!presentationMode}
         nodesConnectable={!presentationMode}
         edgesReconnectable={!presentationMode}

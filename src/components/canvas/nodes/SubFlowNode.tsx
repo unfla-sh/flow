@@ -22,7 +22,7 @@ export function SubFlowNode({ id, data, selected }: NodeProps<WorkflowNode>) {
       description={data.description}
       selected={selected}
       style={data.style}
-      accentClassName="bg-indigo-100 text-indigo-700"
+      accentClassName="bg-indigo-100 text-indigo-700 dark:bg-indigo-400/15 dark:text-indigo-300"
     >
       <div className="flex items-center gap-2 px-3 py-2">
         <Button

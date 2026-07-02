@@ -3,7 +3,7 @@ import { Diamond } from 'lucide-react'
 
 import { NodeIcon } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import type { WorkflowNode } from '@/types/workflow'
+import { TARGET_HANDLE_ID, type WorkflowNode } from '@/types/workflow'
 
 import { resizerProps, targetPosition, useNodeInteractionState } from './nodeHelpers'
 
@@ -55,7 +55,7 @@ export function DecisionNode({ data, selected }: NodeProps<WorkflowNode>) {
         />
       </svg>
       <div className="pointer-events-none relative z-10 flex max-w-[62%] flex-col items-center gap-1 text-center">
-        <NodeIcon name={data.icon} fallback={Diamond} className="size-4 text-sky-700" />
+        <NodeIcon name={data.icon} fallback={Diamond} className="size-4 text-sky-700 dark:text-sky-300" />
         <div className="max-w-full break-words text-xs leading-tight font-semibold">
           {data.label}
         </div>
@@ -64,6 +64,7 @@ export function DecisionNode({ data, selected }: NodeProps<WorkflowNode>) {
         </div>
       </div>
       <Handle
+        id={TARGET_HANDLE_ID}
         type="target"
         position={targetPosition(direction)}
         className="!size-2.5"
@@ -85,7 +86,7 @@ export function DecisionNode({ data, selected }: NodeProps<WorkflowNode>) {
       />
       <span
         className={cn(
-          'pointer-events-none absolute text-[9px] font-medium text-emerald-600',
+          'pointer-events-none absolute text-[9px] font-medium text-emerald-600 dark:text-emerald-400',
           isTb ? 'top-1/2 left-1 -translate-y-1/2' : 'top-1 left-1/2 -translate-x-1/2',
         )}
       >
@@ -93,7 +94,7 @@ export function DecisionNode({ data, selected }: NodeProps<WorkflowNode>) {
       </span>
       <span
         className={cn(
-          'pointer-events-none absolute text-[9px] font-medium text-rose-600',
+          'pointer-events-none absolute text-[9px] font-medium text-rose-600 dark:text-rose-400',
           isTb ? 'top-1/2 right-1 -translate-y-1/2' : 'bottom-1 left-1/2 -translate-x-1/2',
         )}
       >

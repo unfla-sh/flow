@@ -11,7 +11,7 @@ export function NoteNode({ data, selected }: NodeProps<WorkflowNode>) {
   return (
     <div
       className={cn(
-        'h-full w-full rounded-md border border-amber-300 bg-amber-100 p-3 text-amber-900 shadow-sm',
+        'h-full w-full rounded-md border border-amber-300 bg-amber-100 p-3 text-amber-900 shadow-sm dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100',
         selected && 'ring-2 ring-amber-500',
       )}
       style={nodeStyle(data.style)}

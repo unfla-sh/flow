@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Handle } from '@xyflow/react'
 
 import { cn } from '@/lib/utils'
-import type { NodeStyle } from '@/types/workflow'
+import { TARGET_HANDLE_ID, type NodeStyle } from '@/types/workflow'
 
 import { MidHandles } from './MidHandles'
 import {
@@ -42,7 +42,7 @@ export function BaseNode({
   return (
     <div
       className={cn(
-        'w-52 rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow',
+        'w-52 rounded-lg border bg-card text-card-foreground shadow-sm transition-shadow hover:shadow-md',
         selected && 'ring-2 ring-ring',
       )}
       style={nodeStyle(style)}
@@ -67,6 +67,7 @@ export function BaseNode({
       {children}
       {hasTarget && (
         <Handle
+          id={TARGET_HANDLE_ID}
           type="target"
           position={targetPosition(direction)}
           className="!size-2.5"
