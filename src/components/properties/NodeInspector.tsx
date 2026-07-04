@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { NODE_CATEGORIES, nodeCatalog } from '@/data/nodeCatalog'
 import { useDebouncedCallback } from '@/lib/useDebouncedCallback'
-import { useWorkflowStore } from '@/store/workflowStore'
+import { useSelectedNodeCount, useWorkflowStore } from '@/store/workflowStore'
 import type { WorkflowNode } from '@/types/workflow'
 
 import { FormBuilder } from './FormBuilder'
@@ -39,7 +39,10 @@ type GeneralValues = z.infer<typeof generalSchema>
 
 function GeneralTab({ node }: { node: WorkflowNode }) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData)
+  const applyToSelectedNodes = useWorkflowStore((state) => state.applyToSelectedNodes)
   const replaceNodeType = useWorkflowStore((state) => state.replaceNodeType)
+  const selectedCount = useSelectedNodeCount()
+  const bulk = selectedCount > 1
 
   const {
     register,
@@ -119,11 +122,20 @@ function GeneralTab({ node }: { node: WorkflowNode }) {
         value={node.data.icon}
         fallbackName={node.data.nodeType}
         iconBg={node.data.style?.iconBg}
-        onChange={(icon) => updateNodeData(node.id, { icon })}
+        onChange={(icon) =>
+          bulk ? applyToSelectedNodes({ icon }) : updateNodeData(node.id, { icon })
+        }
         onIconBgChange={(iconBg) =>
-          updateNodeData(node.id, { style: { ...node.data.style, iconBg } })
+          bulk
+            ? applyToSelectedNodes({ style: { iconBg } })
+            : updateNodeData(node.id, { style: { ...node.data.style, iconBg } })
         }
       />
+      {bulk && (
+        <p className="text-[10px] text-muted-foreground">
+          Applies to all {selectedCount} selected nodes.
+        </p>
+      )}
     </div>
   )
 }

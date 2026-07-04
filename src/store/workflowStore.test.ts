@@ -189,4 +189,22 @@ describe('workflowStore', () => {
     expect(st.activeFlowPath.length).toBe(2)
     expect(st.doc.flows[subNode.data.subFlowId!]).toBeDefined()
   })
+
+  it('selectAllNodes flags every node without marking the doc dirty', () => {
+    const s = useWorkflowStore.getState()
+    const rev = s.docRevision
+    s.selectAllNodes()
+    const st = useWorkflowStore.getState()
+    expect(active().nodes.every((n) => n.selected)).toBe(true)
+    expect(st.selectedNodeId).toBe(active().nodes[0].id)
+    expect(st.dirty).toBe(false) // selection is not a document edit
+    expect(st.docRevision).toBe(rev)
+  })
+
+  it('applyToSelectedNodes updates every selected node', () => {
+    const s = useWorkflowStore.getState()
+    s.selectAllNodes()
+    s.applyToSelectedNodes({ icon: 'trophy' })
+    expect(active().nodes.every((n) => n.data.icon === 'trophy')).toBe(true)
+  })
 })

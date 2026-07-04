@@ -16,6 +16,9 @@ Top-level shape:
 Node: { "id": string (unique), "type": nodeType, "position": { "x": 0, "y": 0 }, "data": {...} }
 - You may leave every position at {x:0,y:0}; the editor auto-lays-out the graph.
 - data: { "label": string, "description"?: string, "nodeType": nodeType, "params": object, ...type-specific fields }
+- data.icon?: string — an icon name from the registry below, overriding the node type's default. data.style?: { "iconBg"?: hex colour of the icon chip, "textColor"?: hex label colour, "fillColor"?: hex, "borderColor"?: hex, "borderStyle"?: "solid"|"dashed"|"dotted" }.
+- Icon names: workflow, settings, file, clipboard, search, filter, flag, bell, calendar, clock, timer, tag, bookmark, lightbulb, info, alert, code, terminal, branch, merge, split, shuffle, repeat, layers, network, webhook, wrench, zap, cpu, bot, brain, database, table, globe, cloud, server, download, upload, send, mail, message, link, share, image, film, music, eye, user, users, map, map-pin, lock, key, folder, camera, cart, card, dollar, hash, at, truck, package, box, activity, star, trophy, medal, crown, gift, rocket, flame, gamepad, coffee, sun, heart, thumbs-up, party, sparkles, check, play, ball, goal, boot. (Full set in src/lib/icons.ts. For sports/football use "ball", "goal", "boot", "trophy", "medal" or "flag".)
+- SET AN EXPLICIT data.icon ON EVERY NODE, even when it equals the type default, and give every node in the same semantic group the SAME icon name. This makes the file trivial to re-theme later ("change all X icons to Y" becomes one find/replace) instead of the reader having to add icons from scratch.
 
 nodeType values and when to use them:
 - "start"  — entry point / trigger (cron, request). params: {}

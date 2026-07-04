@@ -60,6 +60,7 @@ import {
   GitBranch,
   GitMerge,
   Globe,
+  Goal,
   Hash,
   Heart,
   HeartPulse,
@@ -109,6 +110,7 @@ import {
   Snowflake,
   Sparkles,
   Split,
+  SportShoe,
   Star,
   Stethoscope,
   Sun,
@@ -131,6 +133,7 @@ import {
   Upload,
   User,
   Users,
+  Volleyball,
   Waves,
   Webhook,
   Wheat,
@@ -323,6 +326,14 @@ export const ICON_GROUPS: IconGroup[] = [
       { name: 'turtle', icon: Turtle },
       { name: 'bug', icon: Bug },
       { name: 'paw', icon: PawPrint },
+    ],
+  },
+  {
+    label: 'Sports',
+    icons: [
+      { name: 'ball', icon: Volleyball },
+      { name: 'goal', icon: Goal },
+      { name: 'boot', icon: SportShoe },
     ],
   },
 ]

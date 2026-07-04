@@ -101,6 +101,8 @@ export interface WorkflowState {
   onConnect: (connection: Connection) => void
   addNode: (catalogId: string, position: XYPosition, connectFrom?: PendingConnection) => void
   updateNodeData: (id: string, partial: Partial<WorkflowNodeData>) => void
+  /** Merge `partial` into every currently-selected node (bulk icon/style edits). */
+  applyToSelectedNodes: (partial: Partial<WorkflowNodeData>) => void
   updateEdge: (
     id: string,
     partial: Partial<Pick<WorkflowEdge, 'label' | 'animated' | 'sourceHandle' | 'targetHandle'>> & {
@@ -117,6 +119,8 @@ export interface WorkflowState {
   setPresentationMode: (enabled: boolean) => void
   setSelectedNode: (id: string | null) => void
   setSelectedEdge: (id: string | null) => void
+  /** Select every node in the active flow (Ctrl/Cmd+A) — e.g. for bulk styling. */
+  selectAllNodes: () => void
   clearSelection: () => void
 
   copySelection: () => void
@@ -562,6 +566,31 @@ export const useWorkflowStore = create<WorkflowState>()(
         )
       },
 
+      applyToSelectedNodes: (partial) => {
+        set((state) => {
+          const ids = new Set(selectedNodes(state).map((n) => n.id))
+          if (ids.size === 0) return state
+          return commitFlow(state, activeFlowId(state), (graph) => ({
+            ...graph,
+            nodes: graph.nodes.map((node) =>
+              ids.has(node.id)
+                ? {
+                    ...node,
+                    data: {
+                      ...node.data,
+                      ...partial,
+                      // Style is merged (not replaced) so an iconBg edit keeps other style fields.
+                      ...(partial.style
+                        ? { style: { ...node.data.style, ...partial.style } }
+                        : {}),
+                    },
+                  }
+                : node,
+            ),
+          }))
+        })
+      },
+
       updateEdge: (id, partial) => {
         set((state) =>
           commitFlow(state, activeFlowId(state), (graph) => ({
@@ -771,6 +800,20 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       setSelectedNode: (id) => set({ selectedNodeId: id, selectedEdgeId: null }),
       setSelectedEdge: (id) => set({ selectedEdgeId: id, selectedNodeId: null }),
+      selectAllNodes: () => {
+        set((state) => {
+          const flowId = activeFlowId(state)
+          const graph = state.doc.flows[flowId]
+          if (!graph || graph.nodes.length === 0) return {}
+          const nodes = graph.nodes.map((n) => (n.selected ? n : { ...n, selected: true }))
+          // Selection isn't a document edit, so leave docRevision/dirty untouched.
+          return {
+            doc: { ...state.doc, flows: { ...state.doc.flows, [flowId]: { ...graph, nodes } } },
+            selectedNodeId: nodes[0].id,
+            selectedEdgeId: null,
+          }
+        })
+      },
       clearSelection: () => set({ selectedNodeId: null, selectedEdgeId: null }),
 
       copySelection: () => {
@@ -1286,6 +1329,17 @@ export function useSelectedNode(): WorkflowNode | undefined {
     if (!state.selectedNodeId) return undefined
     const graph = state.doc.flows[state.activeFlowPath[state.activeFlowPath.length - 1]]
     return graph?.nodes.find((node) => node.id === state.selectedNodeId)
+  })
+}
+
+/** How many nodes are currently selected in the active flow (for bulk edits). */
+export function useSelectedNodeCount(): number {
+  return useWorkflowStore((state) => {
+    const graph = state.doc.flows[state.activeFlowPath[state.activeFlowPath.length - 1]]
+    if (!graph) return 0
+    const marked = graph.nodes.filter((node) => node.selected).length
+    // A single click sets selectedNodeId without node.selected; treat that as 1.
+    return marked > 0 ? marked : state.selectedNodeId ? 1 : 0
   })
 }
 

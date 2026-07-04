@@ -31,6 +31,9 @@ export function useHotkeys(onSave: () => void) {
       } else if ((mod && key === 'z' && event.shiftKey) || (mod && key === 'y')) {
         event.preventDefault()
         redo()
+      } else if (mod && key === 'a') {
+        event.preventDefault()
+        store.selectAllNodes()
       } else if (mod && key === 'c') {
         event.preventDefault()
         store.copySelection()

@@ -37,6 +37,7 @@ Anyone who needs to **map a process clearly without standing up infrastructure**
 | --- | --- |
 | Ctrl+C / X / V | Copy / cut / paste |
 | Ctrl+D | Duplicate |
+| Ctrl+A | Select all nodes |
 | Del / Backspace | Delete selection |
 | Ctrl+Z / Ctrl+Shift+Z | Undo / redo |
 | Ctrl+S | Save |

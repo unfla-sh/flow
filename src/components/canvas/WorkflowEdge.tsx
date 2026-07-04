@@ -8,7 +8,7 @@ import {
 } from '@xyflow/react'
 import { useCallback, useMemo } from 'react'
 
-import { useReactFlow } from '@xyflow/react'
+import { useInternalNode, useReactFlow } from '@xyflow/react'
 import { useWorkflowStore } from '@/store/workflowStore'
 import type { WorkflowEdge } from '@/types/workflow'
 
@@ -46,15 +46,34 @@ function splitMidpoint(points: XYPosition[]): XYPosition {
   }
 }
 
-function selfLoopPath(sourceX: number, sourceY: number, targetX: number, targetY: number): string {
-  const top = Math.min(sourceY, targetY)
-  const right = Math.max(sourceX, targetX)
-  return [
-    `M ${sourceX} ${sourceY}`,
-    `C ${right + 110} ${top - 90}`,
-    `${right + 140} ${top + 120}`,
-    `${targetX} ${targetY}`,
+/**
+ * A self-loop (source === target) drawn as a rounded loop that arches clear of
+ * the node instead of crossing back under it. Anchored to the node's real
+ * bounding box so it never overlaps the body, whatever the node's size.
+ */
+function selfLoopPath(
+  node: { x: number; y: number; width: number; height: number } | null,
+  // Fallback handle coords used before the node has been measured.
+  sourceX: number,
+  sourceY: number,
+): [string, number, number] {
+  const nodeX = node ? node.x : sourceX - 100
+  const nodeY = node ? node.y : sourceY - 40
+  const width = node?.width ?? 200
+  const height = node?.height ?? 80
+  // Loop height scales a little with the node so tall nodes still get a visible arch.
+  const loop = 56 + Math.min(height, 200) * 0.25
+  const startX = nodeX + width * 0.62
+  const endX = nodeX + width * 0.38
+  const top = nodeY
+  // Control points fan out past the anchors to pinch the curve into a loop.
+  const path = [
+    `M ${startX} ${top}`,
+    `C ${nodeX + width * 0.92} ${top - loop}`,
+    `${nodeX + width * 0.08} ${top - loop}`,
+    `${endX} ${top}`,
   ].join(' ')
+  return [path, nodeX + width / 2, top - loop * 0.72]
 }
 
 function clamp(value: number | undefined, fallback: number, min: number, max: number): number {
@@ -80,6 +99,18 @@ export function WorkflowEdge({
   const updateEdge = useWorkflowStore((state) => state.updateEdge)
   const presentationMode = useWorkflowStore((state) => state.presentationMode)
   const { screenToFlowPosition } = useReactFlow()
+  const isSelfLoop = source === target
+  // Only subscribe to the node when we actually need its box (self-loops).
+  const selfNode = useInternalNode(isSelfLoop ? source : '')
+  const selfBox = useMemo(() => {
+    if (!isSelfLoop || !selfNode) return null
+    return {
+      x: selfNode.internals.positionAbsolute.x,
+      y: selfNode.internals.positionAbsolute.y,
+      width: selfNode.measured.width ?? 200,
+      height: selfNode.measured.height ?? 80,
+    }
+  }, [isSelfLoop, selfNode])
   const stroke = data?.style?.stroke ?? '#64748b'
   const lineWidth = clamp(data?.style?.lineWidth, 1.75, 1, 8)
   const arrowSize = clamp(data?.style?.arrowSize, 10, 6, 28)
@@ -101,12 +132,11 @@ export function WorkflowEdge({
   const showStartArrow = !bidirectional && data?.style?.arrowStart === true
 
   const routeArgs = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }
-  const [autoPath, labelX, labelY] =
-    source === target
-      ? [selfLoopPath(sourceX, sourceY, targetX, targetY), sourceX + 100, sourceY - 24]
-      : data?.style?.pathType === 'step'
-        ? getSmoothStepPath(routeArgs)
-        : getBezierPath(routeArgs)
+  const [autoPath, labelX, labelY] = isSelfLoop
+    ? selfLoopPath(selfBox, sourceX, sourceY)
+    : data?.style?.pathType === 'step'
+      ? getSmoothStepPath(routeArgs)
+      : getBezierPath(routeArgs)
   const manualPath = smoothPath(manualPoints)
   const path = route?.kind === 'manual' && manualPath ? manualPath : autoPath
   const manualLabel = midpoint(manualPoints)

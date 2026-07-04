@@ -1,6 +1,7 @@
 import { SWITCH_DEFAULT_HANDLE, type WorkflowDoc } from '@/types/workflow'
 
 import type { WorkflowTemplate } from './types'
+import { worldCup } from './worldCup'
 
 /**
  * Safe, generic "feature tour" templates. Split into three small flows so each
@@ -269,4 +270,5 @@ export const showcaseTemplates: WorkflowTemplate[] = [
   { id: 'tour-branching', name: 'Tour 2 · Branching & Data', description: branching.settings.description ?? '', doc: branching },
   { id: 'tour-advanced', name: 'Tour 3 · Sub-flows, Links & Style', description: advanced.settings.description ?? '', doc: advanced },
   { id: 'tour-agent-loop', name: 'Tour 4 · Phases, Loops & Step Arrows', description: agentLoop.settings.description ?? '', doc: agentLoop },
+  { id: 'tour-world-cup', name: 'Tour 5 · FIFA World Cup 2026', description: worldCup.settings.description ?? '', doc: worldCup },
 ]
