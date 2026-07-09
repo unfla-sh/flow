@@ -16,6 +16,7 @@ import {
   Table2,
   Timer,
   TriangleAlert,
+  Trophy,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -268,6 +269,27 @@ export const nodeCatalog: NodeCatalogEntry[] = [
       nodeType: 'frame',
       params: {},
       style: { borderStyle: 'dashed' },
+    }),
+  },
+  {
+    id: 'scorecard',
+    nodeType: 'scorecard',
+    label: 'Score Card',
+    description:
+      'Results card: header strip plus rows of label + value, bold rows emphasised. For brackets, leaderboards, comparisons.',
+    category: 'Annotate',
+    icon: Trophy,
+    defaultData: () => ({
+      label: 'Score Card',
+      nodeType: 'scorecard',
+      params: {
+        header: 'Header',
+        tag: '',
+        rows: [
+          { icon: '', label: 'Entry A', value: '0', bold: true },
+          { icon: '', label: 'Entry B', value: '0' },
+        ],
+      },
     }),
   },
   {

@@ -31,6 +31,7 @@ nodeType values and when to use them:
 - "subflow" — a nested pipeline. data.subFlowId: string referencing another key in "flows". Put that flow's nodes/edges under flows[subFlowId].
 - "note"   — sticky annotation. params.text: string. No edges.
 - "frame"  — visual grouping box behind nodes. No edges.
+- "scorecard" — display-only results card (brackets, leaderboards, comparisons). params: { "header"?: string (left of header strip, e.g. venue), "tag"?: string (right, e.g. "Full time"), "caption"?: string (small-caps text above the card), "emblem"?: string (emoji shown large above the card, e.g. "🏆"), "accent"?: boolean (gold background on bold rows), "rows": [{ "icon"?: emoji, "label": string, "value"?: string, "bold"?: boolean }] }. Bold rows are emphasised and the others muted. May be wired with edges (e.g. tournament brackets).
 
 Edge: { "id": string (unique), "source": nodeId, "target": nodeId, "label"?: string, "sourceHandle"?: string, "targetHandle"?: string, "data"?: { "condition"?: string, "style"?: { "arrow"?: true, "arrowStart"?: true, "bidirectional"?: true, "lineWidth"?: number, "arrowSize"?: number } } }
 - For condition sources set "sourceHandle":"true"|"false". For switch sources set it to the case id or "default".

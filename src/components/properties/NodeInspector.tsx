@@ -27,6 +27,7 @@ import type { WorkflowNode } from '@/types/workflow'
 import { FormBuilder } from './FormBuilder'
 import { IconPicker } from './IconPicker'
 import { JsonOutputEditor } from './JsonOutputEditor'
+import { ScoreCardEditor } from './ScoreCardEditor'
 import { ScriptEditor } from './ScriptEditor'
 import { SwitchCasesEditor } from './SwitchCasesEditor'
 
@@ -350,6 +351,7 @@ function BehaviorTab({ node }: { node: WorkflowNode }) {
   }
   if (node.data.nodeType === 'note') return <NoteTab node={node} />
   if (node.data.nodeType === 'media') return <MediaTab node={node} />
+  if (node.data.nodeType === 'scorecard') return <ScoreCardEditor node={node} />
 
   return (
     <div className="rounded-md border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">

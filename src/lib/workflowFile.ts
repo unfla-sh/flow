@@ -37,6 +37,7 @@ const nodeDataSchema = z.looseObject({
     'note',
     'frame',
     'media',
+    'scorecard',
   ]),
   params: z.record(z.string(), z.unknown()),
   style: z

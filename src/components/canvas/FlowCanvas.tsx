@@ -33,6 +33,7 @@ import { FormNode } from './nodes/FormNode'
 import { FrameNode } from './nodes/FrameNode'
 import { MediaNode } from './nodes/MediaNode'
 import { NoteNode } from './nodes/NoteNode'
+import { ScoreCardNode } from './nodes/ScoreCardNode'
 import { ScriptNode } from './nodes/ScriptNode'
 import { EndNode, StartNode } from './nodes/StartEndNode'
 import { SubFlowNode } from './nodes/SubFlowNode'
@@ -54,6 +55,7 @@ const nodeTypes: NodeTypes = {
   note: NoteNode,
   frame: FrameNode,
   media: MediaNode,
+  scorecard: ScoreCardNode,
 }
 
 const edgeTypes: EdgeTypes = {

@@ -13,6 +13,7 @@ export type NodeTypeId =
   | 'note'
   | 'frame'
   | 'media'
+  | 'scorecard'
 
 export type FieldType =
   | 'text'
@@ -56,6 +57,42 @@ export const SWITCH_DEFAULT_HANDLE = 'default'
  * store normalises it — so documents and the inspector are unaffected.
  */
 export const TARGET_HANDLE_ID = 'in'
+
+/** One row of a score card: an entry with an optional glyph and value. */
+export interface ScoreRow {
+  /** Emoji or short glyph shown before the label (a flag, a dot, …). */
+  icon?: string
+  label: string
+  /** Displayed as-is, so e.g. penalty shoot-outs can read "1 (3)". */
+  value?: string
+  /** Emphasise this row; the card mutes non-bold rows when any row is bold. */
+  bold?: boolean
+}
+
+/**
+ * Params of a score-card node — a compact results/comparison card: header
+ * strip, one row per entry, bold rows emphasised. Fits tournament brackets,
+ * leaderboards, A/B comparisons, election tallies, …
+ */
+export interface ScoreCardParams {
+  /** Left side of the header strip, e.g. a venue or a category. */
+  header?: string
+  /** Right side of the header strip, e.g. "Full time" or a date. */
+  tag?: string
+  /** Small-caps caption above the card, e.g. "3RD-PLACE". */
+  caption?: string
+  /** Emoji rendered large above the card, e.g. "🏆" for a final. */
+  emblem?: string
+  /** Give bold rows a gold background (championship style). */
+  accent?: boolean
+  rows: ScoreRow[]
+}
+
+/** Read a node's params bag as score-card params (rows default to empty). */
+export function scoreCardParamsOf(params: Record<string, unknown>): ScoreCardParams {
+  const candidate = params as Partial<ScoreCardParams>
+  return { ...candidate, rows: Array.isArray(candidate.rows) ? candidate.rows : [] }
+}
 
 export type FlowDirection = 'lr' | 'tb'
 

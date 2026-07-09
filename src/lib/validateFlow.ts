@@ -10,8 +10,10 @@ export interface FlowIssue {
   nodeId?: string
 }
 
-/** Annotation nodes don't participate in flow connectivity. */
-const isLogic = (type: string) => type !== 'note' && type !== 'frame'
+/** Annotation nodes don't participate in flow connectivity. Score cards may
+ * be wired (e.g. bracket lines) but are display-only, so they aren't linted
+ * for orphans/dead ends either. */
+const isLogic = (type: string) => type !== 'note' && type !== 'frame' && type !== 'scorecard'
 
 /**
  * Lint a flow for structural problems — the kind of checks n8n / Node-RED
