@@ -3,6 +3,7 @@ import type { ImperativePanelHandle } from 'react-resizable-panels'
 
 import { FlowCanvas } from '@/components/canvas/FlowCanvas'
 import { EditorToolbar } from '@/components/layout/EditorToolbar'
+import { TemplateUpdateBanner } from '@/components/layout/TemplateUpdateBanner'
 import { NodePalette } from '@/components/palette/NodePalette'
 import { PropertiesPanel } from '@/components/properties/PropertiesPanel'
 import {
@@ -42,7 +43,10 @@ export function EditorLayout() {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={60} minSize={30}>
-          <FlowCanvas />
+          <div className="relative h-full">
+            <TemplateUpdateBanner />
+            <FlowCanvas />
+          </div>
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel

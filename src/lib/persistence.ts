@@ -1,6 +1,7 @@
 import { getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import { toPng } from 'html-to-image'
 
+import type { WorkflowTemplate } from '@/data/templates'
 import { clearShareHash, hasSharedDoc, readSharedDoc } from '@/lib/share'
 import { APP_VERSION } from '@/lib/version'
 import { parseWorkflowFile, sanitizeDoc, serializeDoc } from '@/lib/workflowFile'
@@ -96,6 +97,22 @@ export function loadDocAsNew(doc: WorkflowDoc) {
   useWorkflowStore.getState().loadDoc(doc, null)
   clearHistory()
   useWorkflowStore.setState({ dirty: true })
+}
+
+/**
+ * Load a bundled template, stamping provenance (template id + version) into
+ * doc.meta so the editor can offer an update when the bundled template
+ * changes in a later release.
+ */
+export function loadTemplate(template: WorkflowTemplate) {
+  loadDocAsNew({
+    ...template.doc,
+    meta: {
+      ...template.doc.meta,
+      templateId: template.id,
+      templateVersion: template.doc.settings.version,
+    },
+  })
 }
 
 // ---------------------------------------------------------------------------

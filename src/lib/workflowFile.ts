@@ -116,6 +116,8 @@ export const workflowDocSchema = z
       .object({
         appVersion: z.string().optional(),
         exportedAt: z.string().optional(),
+        templateId: z.string().optional(),
+        templateVersion: z.string().optional(),
       })
       .optional(),
   })

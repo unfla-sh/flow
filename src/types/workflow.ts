@@ -170,6 +170,11 @@ export const ROOT_FLOW_ID = 'root'
 export interface DocMeta {
   appVersion?: string
   exportedAt?: string
+  /** Bundled template this doc was created from, for update detection. */
+  templateId?: string
+  /** The template's settings.version at load time (settings.version of the
+   * copy is user-editable, so it can't be trusted for comparison). */
+  templateVersion?: string
 }
 
 export interface WorkflowDoc {

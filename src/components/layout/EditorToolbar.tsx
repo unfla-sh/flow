@@ -66,7 +66,7 @@ import {
   exportToJsonFile,
   exportToPng,
   importFromJsonFile,
-  loadDocAsNew,
+  loadTemplate,
   loadWorkflowById,
   saveCurrentWorkflow,
 } from '@/lib/persistence'
@@ -251,7 +251,7 @@ export function EditorToolbar({
               {templates.map((template) => (
                 <DropdownMenuItem
                   key={template.id}
-                  onSelect={() => guarded(`Load “${template.name}”`, () => loadDocAsNew(template.doc))}
+                  onSelect={() => guarded(`Load “${template.name}”`, () => loadTemplate(template))}
                 >
                   {template.name}
                 </DropdownMenuItem>
