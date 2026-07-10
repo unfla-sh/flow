@@ -4,6 +4,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSelectedEdge, useSelectedNode, useWorkflowStore } from '@/store/workflowStore'
+import { diagramKindOf, getDiagramKit } from '@/data/diagramKits'
 
 import { EdgeInspector } from './EdgeInspector'
 import { NodeInspector } from './NodeInspector'
@@ -26,8 +27,11 @@ export function PropertiesPanel() {
   const node = useSelectedNode()
   const edge = useSelectedEdge()
   const presentationMode = useWorkflowStore((state) => state.presentationMode)
+  const kitLabel = useWorkflowStore((state) =>
+    getDiagramKit(diagramKindOf(state.doc.settings)).label,
+  )
 
-  const title = node ? 'Node' : edge ? 'Edge' : 'Workflow'
+  const title = node ? 'Node' : edge ? 'Edge' : kitLabel
 
   // Block keystrokes that would edit a focused field while read-only, but keep
   // navigation and copy (Ctrl/Cmd) working so the panel stays inspectable.

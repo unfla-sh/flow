@@ -10,7 +10,23 @@ import { useCallback, useMemo } from 'react'
 
 import { useInternalNode, useReactFlow } from '@xyflow/react'
 import { useWorkflowStore } from '@/store/workflowStore'
-import type { WorkflowEdge } from '@/types/workflow'
+import type { EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
+
+const EDGE_STROKES: Record<EdgeKind, string> = {
+  flow: '#64748b',
+  reporting: '#64748b',
+  relationship: '#475569',
+  network: '#0284c7',
+  data: '#7c3aed',
+  dependency: '#d97706',
+}
+
+const CARDINALITY_LABELS: Record<EdgeCardinality, string> = {
+  one: '1',
+  'zero-one': '0..1',
+  many: '1..N',
+  'zero-many': '0..N',
+}
 
 function smoothPath(points: XYPosition[]): string {
   if (points.length < 2) return ''
@@ -111,7 +127,8 @@ export function WorkflowEdge({
       height: selfNode.measured.height ?? 80,
     }
   }, [isSelfLoop, selfNode])
-  const stroke = data?.style?.stroke ?? '#64748b'
+  const edgeKind = data?.kind ?? 'flow'
+  const stroke = data?.style?.stroke ?? EDGE_STROKES[edgeKind]
   const lineWidth = clamp(data?.style?.lineWidth, 1.75, 1, 8)
   const arrowSize = clamp(data?.style?.arrowSize, 10, 6, 28)
   const route = data?.route
@@ -130,6 +147,28 @@ export function WorkflowEdge({
   const bidirectional = data?.style?.bidirectional === true
   const showEndArrow = !bidirectional && data?.style?.arrow === true
   const showStartArrow = !bidirectional && data?.style?.arrowStart === true
+  const strokeDasharray =
+    data?.style?.lineStyle === 'dotted'
+      ? '2 5'
+      : data?.style?.lineStyle === 'dashed'
+        ? '7 5'
+        : undefined
+  const renderedLabel = [label, data?.protocol].filter(Boolean).join(' · ')
+  const staticEdgeStyle = {
+    stroke,
+    strokeWidth: selected ? lineWidth + 0.75 : lineWidth,
+    ...(strokeDasharray ? { strokeDasharray } : {}),
+  }
+  const sourceCardinality = data?.sourceCardinality ?? 'one'
+  const targetCardinality = data?.targetCardinality ?? 'many'
+  const sourceCardinalityPosition = {
+    x: sourceX + (targetX - sourceX) * 0.12,
+    y: sourceY + (targetY - sourceY) * 0.12,
+  }
+  const targetCardinalityPosition = {
+    x: sourceX + (targetX - sourceX) * 0.88,
+    y: sourceY + (targetY - sourceY) * 0.88,
+  }
 
   const routeArgs = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }
   const [autoPath, labelX, labelY] = isSelfLoop
@@ -217,31 +256,47 @@ export function WorkflowEdge({
             path={bidirectionalSourcePath}
             markerEnd={`url(#${markerStartId})`}
             className={animated ? 'workflow-edge-animated' : undefined}
-            style={{ stroke, strokeWidth: selected ? lineWidth + 0.75 : lineWidth }}
+            style={staticEdgeStyle}
           />
           <BaseEdge
             id={`${id}-target`}
             path={bidirectionalTargetPath}
-            label={label}
+            label={renderedLabel}
             labelX={bidirectionalMidpoint.x}
             labelY={bidirectionalMidpoint.y}
             markerEnd={`url(#${markerEndId})`}
             className={animated ? 'workflow-edge-animated' : undefined}
-            style={{ stroke, strokeWidth: selected ? lineWidth + 0.75 : lineWidth }}
+            style={staticEdgeStyle}
           />
         </>
       ) : (
         <BaseEdge
           id={id}
           path={path}
-          label={label}
+          label={renderedLabel}
           labelX={route?.kind === 'manual' ? manualLabel.x : labelX}
           labelY={route?.kind === 'manual' ? manualLabel.y : labelY}
           markerStart={showStartArrow ? `url(#${markerStartId})` : undefined}
           markerEnd={showEndArrow ? `url(#${markerEndId})` : undefined}
           className={animated ? 'workflow-edge-animated' : undefined}
-          style={{ stroke, strokeWidth: selected ? lineWidth + 0.75 : lineWidth }}
+          style={staticEdgeStyle}
         />
+      )}
+      {edgeKind === 'relationship' && (
+        <EdgeLabelRenderer>
+          {[
+            { key: 'source', value: sourceCardinality, position: sourceCardinalityPosition },
+            { key: 'target', value: targetCardinality, position: targetCardinalityPosition },
+          ].map((item) => (
+            <span
+              key={`${id}-${item.key}-cardinality`}
+              className="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded border bg-background px-1 py-0.5 font-mono text-[8px] font-semibold text-foreground shadow-sm"
+              style={{ left: item.position.x, top: item.position.y }}
+            >
+              {CARDINALITY_LABELS[item.value]}
+            </span>
+          ))}
+        </EdgeLabelRenderer>
       )}
       {selected && !presentationMode && bendPoints.length > 0 && (
         <EdgeLabelRenderer>

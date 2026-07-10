@@ -14,6 +14,43 @@ export type NodeTypeId =
   | 'frame'
   | 'media'
   | 'scorecard'
+  | 'profile'
+  | 'record'
+  | 'resource'
+
+export type DiagramKind =
+  | 'workflow'
+  | 'organization'
+  | 'database'
+  | 'infrastructure'
+  | 'image-generation'
+  | 'general'
+
+export type EdgeKind =
+  | 'flow'
+  | 'reporting'
+  | 'relationship'
+  | 'network'
+  | 'data'
+  | 'dependency'
+
+export type EdgeCardinality = 'one' | 'zero-one' | 'many' | 'zero-many'
+
+export interface NodeAttribute {
+  id: string
+  label: string
+  value: string
+}
+
+export type RecordFieldKey = 'none' | 'primary' | 'foreign' | 'unique'
+
+export interface RecordField {
+  id: string
+  name: string
+  dataType: string
+  key?: RecordFieldKey
+  nullable?: boolean
+}
 
 export type FieldType =
   | 'text'
@@ -124,12 +161,15 @@ export interface EdgeStyle {
   arrowSize?: number
   /** Auto-route shape: curved bezier (default) or right-angle step. */
   pathType?: 'bezier' | 'step'
+  lineStyle?: 'solid' | 'dashed' | 'dotted'
 }
 
 export interface WorkflowNodeData extends Record<string, unknown> {
   label: string
   description?: string
   nodeType: NodeTypeId
+  /** Stable palette/kit definition. Several definitions may share one renderer. */
+  definitionId?: string
   params: Record<string, unknown>
   style?: NodeStyle
   /** Icon registry name overriding the node type's default icon. */
@@ -137,6 +177,10 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   formSchema?: FormField[]
   /** Branches of a switch node. */
   cases?: SwitchCase[]
+  /** Reusable label/value rows used by profile and resource renderers. */
+  attributes?: NodeAttribute[]
+  /** Rows and connection points rendered by database/schema record nodes. */
+  fields?: RecordField[]
   simulatedOutput?: unknown
   scriptPath?: string
   scriptSnippet?: string
@@ -144,7 +188,11 @@ export interface WorkflowNodeData extends Record<string, unknown> {
 }
 
 export interface WorkflowEdgeData extends Record<string, unknown> {
+  kind?: EdgeKind
   condition?: string
+  protocol?: string
+  sourceCardinality?: EdgeCardinality
+  targetCardinality?: EdgeCardinality
   route?: EdgeRoute
   style?: EdgeStyle
 }
@@ -153,6 +201,7 @@ export interface WorkflowSettings {
   name: string
   version: string
   description?: string
+  diagramKind?: DiagramKind
 }
 
 export type WorkflowNode = Node<WorkflowNodeData>

@@ -55,18 +55,18 @@ export function GenerateAiDialog({
         <DialogHeader>
           <DialogTitle>Generate with AI</DialogTitle>
           <DialogDescription>
-            No API key needed. Describe a pipeline, copy the prompt into any chat assistant (Poe,
+            No API key needed. Describe a diagram, copy the prompt into any chat assistant (Poe,
             ChatGPT, Claude.ai, Gemini…), then paste its JSON answer back here.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-1.5">
-          <Label htmlFor="ai-prompt">Describe the pipeline</Label>
+          <Label htmlFor="ai-prompt">Describe the diagram</Label>
           <Textarea
             id="ai-prompt"
             value={prompt}
             onChange={(event) => setPrompt(event.target.value)}
-            placeholder="e.g. A nightly ETL: fetch orders from the API, validate, branch on record count, transform, load to the warehouse, notify Slack…"
+            placeholder="e.g. A web platform with a firewall, load balancer, two web servers, application API, database, and cache…"
             className="min-h-24"
           />
         </div>
@@ -80,7 +80,7 @@ export function GenerateAiDialog({
           </div>
           <Textarea
             readOnly
-            value={prompt.trim() ? buildFullPrompt(prompt) : 'Describe the pipeline above first…'}
+            value={prompt.trim() ? buildFullPrompt(prompt) : 'Describe the diagram above first…'}
             className="max-h-28 min-h-20 overflow-auto font-mono text-[10px]"
             onFocus={(e) => e.currentTarget.select()}
           />
@@ -107,7 +107,7 @@ export function GenerateAiDialog({
             Cancel
           </Button>
           <Button size="sm" disabled={!pasted.trim()} onClick={loadPasted}>
-            Load flow
+            Load diagram
           </Button>
         </DialogFooter>
       </DialogContent>

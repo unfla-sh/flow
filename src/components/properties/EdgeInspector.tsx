@@ -11,10 +11,24 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActiveFlow, useWorkflowStore } from '@/store/workflowStore'
-import type { WorkflowEdge } from '@/types/workflow'
+import type { EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const
 const AUTO = '__auto__'
+const EDGE_KINDS: { value: EdgeKind; label: string }[] = [
+  { value: 'flow', label: 'Process flow' },
+  { value: 'reporting', label: 'Reporting line' },
+  { value: 'relationship', label: 'Data relationship' },
+  { value: 'network', label: 'Network connection' },
+  { value: 'data', label: 'Data transfer' },
+  { value: 'dependency', label: 'Dependency' },
+]
+const CARDINALITIES: { value: EdgeCardinality; label: string }[] = [
+  { value: 'one', label: 'Exactly one' },
+  { value: 'zero-one', label: 'Zero or one' },
+  { value: 'many', label: 'One or many' },
+  { value: 'zero-many', label: 'Zero or many' },
+]
 
 function nodeCenter(
   node: ReturnType<typeof useActiveFlow>['nodes'][number] | undefined,
@@ -85,6 +99,83 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
             placeholder="e.g. submitted"
           />
         </div>
+        <div className="space-y-1.5">
+          <Label>Connection type</Label>
+          <Select
+            value={edge.data?.kind ?? 'flow'}
+            onValueChange={(kind) => updateEdge(edge.id, { data: { kind: kind as EdgeKind } })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {EDGE_KINDS.map((kind) => (
+                <SelectItem key={kind.value} value={kind.value}>
+                  {kind.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        {(edge.data?.kind === 'network' || edge.data?.kind === 'data') && (
+          <div className="space-y-1.5">
+            <Label htmlFor="edge-protocol">Protocol / format</Label>
+            <Input
+              id="edge-protocol"
+              value={edge.data?.protocol ?? ''}
+              onChange={(event) => updateEdge(edge.id, { data: { protocol: event.target.value } })}
+              placeholder="HTTPS :443, SQL :5432, JSON"
+            />
+          </div>
+        )}
+        {edge.data?.kind === 'relationship' && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label>Source cardinality</Label>
+              <Select
+                value={edge.data?.sourceCardinality ?? 'one'}
+                onValueChange={(value) =>
+                  updateEdge(edge.id, {
+                    data: { sourceCardinality: value as EdgeCardinality },
+                  })
+                }
+              >
+                <SelectTrigger aria-label="Source cardinality">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARDINALITIES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Target cardinality</Label>
+              <Select
+                value={edge.data?.targetCardinality ?? 'many'}
+                onValueChange={(value) =>
+                  updateEdge(edge.id, {
+                    data: { targetCardinality: value as EdgeCardinality },
+                  })
+                }
+              >
+                <SelectTrigger aria-label="Target cardinality">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CARDINALITIES.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="edge-condition">Condition expression</Label>
           <Input
@@ -191,6 +282,31 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
         </Button>
       </TabsContent>
       <TabsContent value="style" className="space-y-4 pt-2">
+        <div className="space-y-1.5">
+          <Label>Line style</Label>
+          <Select
+            value={style.lineStyle ?? 'solid'}
+            onValueChange={(lineStyle) =>
+              updateEdge(edge.id, {
+                data: {
+                  style: {
+                    ...style,
+                    lineStyle: lineStyle as 'solid' | 'dashed' | 'dotted',
+                  },
+                },
+              })
+            }
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="solid">Solid</SelectItem>
+              <SelectItem value="dashed">Dashed</SelectItem>
+              <SelectItem value="dotted">Dotted</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div className="flex items-center justify-between">
           <Label htmlFor="edge-twoway">Two-way arrow (⇄)</Label>
           <Switch

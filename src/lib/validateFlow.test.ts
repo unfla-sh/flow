@@ -81,4 +81,39 @@ describe('validateFlow', () => {
     ])
     expect(counts).toEqual({ error: 1, warning: 2, info: 1 })
   })
+
+  it('does not apply workflow start/end rules to architecture diagrams', () => {
+    const g = graph(
+      [node('firewall', 'resource'), node('server', 'resource')],
+      [{ id: 'network', source: 'firewall', target: 'server', data: { kind: 'network' } }],
+    )
+    const issues = validateFlow(g, 'infrastructure')
+    expect(issues.some((issue) => issue.id === 'no-start' || issue.id === 'no-end')).toBe(false)
+  })
+
+  it('detects organization reporting cycles', () => {
+    const a = node('a', 'profile')
+    a.data.params = { title: 'Director' }
+    const b = node('b', 'profile')
+    b.data.params = { title: 'Manager' }
+    const g = graph(
+      [a, b],
+      [
+        { id: '1', source: 'a', target: 'b', data: { kind: 'reporting' } },
+        { id: '2', source: 'b', target: 'a', data: { kind: 'reporting' } },
+      ],
+    )
+    expect(validateFlow(g, 'organization').some((issue) => issue.id === 'reporting-cycle')).toBe(true)
+  })
+
+  it('validates database field uniqueness and primary keys', () => {
+    const table = node('users', 'record')
+    table.data.fields = [
+      { id: '1', name: 'email', dataType: 'text' },
+      { id: '2', name: 'email', dataType: 'text' },
+    ]
+    const issues = validateFlow(graph([table], []), 'database')
+    expect(issues.some((issue) => issue.id === 'duplicate-field-users')).toBe(true)
+    expect(issues.some((issue) => issue.id === 'missing-primary-key-users')).toBe(true)
+  })
 })

@@ -8,6 +8,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { issueCounts, validateFlow, type FlowIssue } from '@/lib/validateFlow'
+import { diagramKindOf } from '@/data/diagramKits'
 import { cn } from '@/lib/utils'
 import { useActiveFlow, useWorkflowStore } from '@/store/workflowStore'
 
@@ -20,8 +21,9 @@ function SeverityIcon({ severity }: { severity: FlowIssue['severity'] }) {
 export function ValidationMenu() {
   const graph = useActiveFlow()
   const setSelectedNode = useWorkflowStore((state) => state.setSelectedNode)
+  const diagramKind = useWorkflowStore((state) => diagramKindOf(state.doc.settings))
 
-  const issues = useMemo(() => validateFlow(graph), [graph])
+  const issues = useMemo(() => validateFlow(graph, diagramKind), [diagramKind, graph])
   const counts = issueCounts(issues)
   const total = issues.length
   const tone =

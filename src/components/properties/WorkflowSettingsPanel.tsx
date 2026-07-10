@@ -1,6 +1,14 @@
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { diagramKindOf, diagramKits } from '@/data/diagramKits'
 import { APP_VERSION } from '@/lib/version'
 import { useWorkflowStore } from '@/store/workflowStore'
 
@@ -26,6 +34,26 @@ export function WorkflowSettingsPanel() {
         />
       </div>
       <div className="space-y-1.5">
+        <Label>Diagram kit</Label>
+        <Select
+          value={diagramKindOf(settings)}
+          onValueChange={(diagramKind) =>
+            updateSettings({ diagramKind: diagramKind as NonNullable<typeof settings.diagramKind> })
+          }
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {diagramKits.map((kit) => (
+              <SelectItem key={kit.id} value={kit.id}>
+                {kit.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
         <Label htmlFor="wf-version">Version</Label>
         <Input
           id="wf-version"
@@ -39,7 +67,7 @@ export function WorkflowSettingsPanel() {
           id="wf-description"
           value={settings.description ?? ''}
           onChange={(event) => updateSettings({ description: event.target.value })}
-          placeholder="What does this workflow do?"
+          placeholder="What does this diagram describe?"
         />
       </div>
       <div className="rounded-md border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">

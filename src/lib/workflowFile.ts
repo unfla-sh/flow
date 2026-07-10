@@ -21,6 +21,20 @@ const switchCaseSchema = z.object({
   when: z.string(),
 })
 
+const nodeAttributeSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  value: z.string(),
+})
+
+const recordFieldSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  dataType: z.string(),
+  key: z.enum(['none', 'primary', 'foreign', 'unique']).optional(),
+  nullable: z.boolean().optional(),
+})
+
 const nodeDataSchema = z.looseObject({
   label: z.string(),
   description: z.string().optional(),
@@ -38,7 +52,11 @@ const nodeDataSchema = z.looseObject({
     'frame',
     'media',
     'scorecard',
+    'profile',
+    'record',
+    'resource',
   ]),
+  definitionId: z.string().optional(),
   params: z.record(z.string(), z.unknown()),
   style: z
     .object({
@@ -52,6 +70,8 @@ const nodeDataSchema = z.looseObject({
   icon: z.string().optional(),
   formSchema: z.array(formFieldSchema).optional(),
   cases: z.array(switchCaseSchema).optional(),
+  attributes: z.array(nodeAttributeSchema).optional(),
+  fields: z.array(recordFieldSchema).optional(),
   simulatedOutput: z.unknown().optional(),
   scriptPath: z.string().optional(),
   scriptSnippet: z.string().optional(),
@@ -91,8 +111,15 @@ const edgeSchema = z.looseObject({
           lineWidth: z.number().optional(),
           arrowSize: z.number().optional(),
           pathType: z.enum(['bezier', 'step']).optional(),
+          lineStyle: z.enum(['solid', 'dashed', 'dotted']).optional(),
         })
         .optional(),
+      kind: z
+        .enum(['flow', 'reporting', 'relationship', 'network', 'data', 'dependency'])
+        .optional(),
+      protocol: z.string().optional(),
+      sourceCardinality: z.enum(['one', 'zero-one', 'many', 'zero-many']).optional(),
+      targetCardinality: z.enum(['one', 'zero-one', 'many', 'zero-many']).optional(),
     })
     .optional(),
 })
@@ -110,6 +137,16 @@ export const workflowDocSchema = z
       name: z.string(),
       version: z.string(),
       description: z.string().optional(),
+      diagramKind: z
+        .enum([
+          'workflow',
+          'organization',
+          'database',
+          'infrastructure',
+          'image-generation',
+          'general',
+        ])
+        .optional(),
     }),
     flows: z.record(z.string(), flowGraphSchema),
     meta: z
@@ -142,6 +179,7 @@ export function sanitizeDoc(doc: WorkflowDoc): WorkflowDoc {
       void selected
       return rest
     }),
+    ...(graph.settings ? { settings: { ...graph.settings } } : {}),
   })
   return {
     schemaVersion: 1,

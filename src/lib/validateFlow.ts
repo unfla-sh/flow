@@ -1,4 +1,9 @@
-import { SWITCH_DEFAULT_HANDLE, type FlowGraph } from '@/types/workflow'
+import {
+  SWITCH_DEFAULT_HANDLE,
+  type DiagramKind,
+  type FlowGraph,
+  type WorkflowEdge,
+} from '@/types/workflow'
 
 export type IssueSeverity = 'error' | 'warning' | 'info'
 
@@ -20,7 +25,77 @@ const isLogic = (type: string) => type !== 'note' && type !== 'frame' && type !=
  * surface: missing entry/exit, orphaned or unreachable nodes, dangling edges,
  * dead ends, and branch nodes with unwired outputs. Pure over the graph.
  */
-export function validateFlow(graph: FlowGraph): FlowIssue[] {
+function organizationIssues(graph: FlowGraph, outgoing: Map<string, WorkflowEdge[]>): FlowIssue[] {
+  const issues: FlowIssue[] = []
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+  const reportingTargets = (id: string) =>
+    (outgoing.get(id) ?? [])
+      .filter(
+        (edge) =>
+          (edge.data?.kind ?? 'reporting') === 'reporting' &&
+          edge.data?.style?.lineStyle !== 'dotted',
+      )
+      .map((edge) => edge.target)
+
+  const visit = (id: string): boolean => {
+    if (visiting.has(id)) return true
+    if (visited.has(id)) return false
+    visiting.add(id)
+    const cycle = reportingTargets(id).some(visit)
+    visiting.delete(id)
+    visited.add(id)
+    return cycle
+  }
+
+  if (graph.nodes.some((node) => visit(node.id))) {
+    issues.push({
+      id: 'reporting-cycle',
+      severity: 'error',
+      message: 'Reporting lines contain a cycle.',
+    })
+  }
+  for (const node of graph.nodes.filter((item) => item.data.nodeType === 'profile')) {
+    if (!String(node.data.params.title ?? '').trim()) {
+      issues.push({
+        id: `profile-title-${node.id}`,
+        severity: 'info',
+        message: `“${node.data.label}” has no role title.`,
+        nodeId: node.id,
+      })
+    }
+  }
+  return issues
+}
+
+function databaseIssues(graph: FlowGraph): FlowIssue[] {
+  const issues: FlowIssue[] = []
+  for (const node of graph.nodes.filter((item) => item.data.nodeType === 'record')) {
+    const fields = node.data.fields ?? []
+    const names = fields.map((field) => field.name.trim().toLowerCase()).filter(Boolean)
+    if (new Set(names).size !== names.length) {
+      issues.push({
+        id: `duplicate-field-${node.id}`,
+        severity: 'error',
+        message: `“${node.data.label}” has duplicate field names.`,
+        nodeId: node.id,
+      })
+    }
+    if (String(node.data.params.recordKind ?? 'Table').toLowerCase() !== 'view') {
+      if (!fields.some((field) => field.key === 'primary')) {
+        issues.push({
+          id: `missing-primary-key-${node.id}`,
+          severity: 'info',
+          message: `“${node.data.label}” has no primary key.`,
+          nodeId: node.id,
+        })
+      }
+    }
+  }
+  return issues
+}
+
+export function validateFlow(graph: FlowGraph, diagramKind: DiagramKind = 'workflow'): FlowIssue[] {
   const issues: FlowIssue[] = []
   const nodes = graph.nodes
   const logic = nodes.filter((n) => isLogic(n.data.nodeType))
@@ -43,6 +118,12 @@ export function validateFlow(graph: FlowGraph): FlowIssue[] {
     if (!outgoing.has(edge.source)) outgoing.set(edge.source, [])
     outgoing.get(edge.source)!.push(edge)
     incoming.set(edge.target, (incoming.get(edge.target) ?? 0) + 1)
+  }
+
+  if (diagramKind !== 'workflow') {
+    if (diagramKind === 'organization') issues.push(...organizationIssues(graph, outgoing))
+    if (diagramKind === 'database') issues.push(...databaseIssues(graph))
+    return issues
   }
 
   const starts = logic.filter((n) => n.data.nodeType === 'start')

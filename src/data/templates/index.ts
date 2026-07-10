@@ -1,5 +1,7 @@
 import { showcaseTemplates } from './showcase'
+import { scenarioKitTemplates } from './scenarioKits'
 import type { WorkflowTemplate } from './types'
+import { normalizeCatalogDefinitionIds } from '@/data/nodeCatalog'
 
 /**
  * Private templates live in ./private/*.templates.ts, which is git-ignored —
@@ -12,6 +14,15 @@ const privateModules = import.meta.glob<{ templates?: WorkflowTemplate[] }>(
 )
 const privateTemplates = Object.values(privateModules).flatMap((m) => m.templates ?? [])
 
-export const templates: WorkflowTemplate[] = [...showcaseTemplates, ...privateTemplates]
+const bundledTemplates: WorkflowTemplate[] = [
+  ...scenarioKitTemplates,
+  ...showcaseTemplates,
+  ...privateTemplates,
+]
+
+export const templates: WorkflowTemplate[] = bundledTemplates.map((template) => ({
+  ...template,
+  doc: normalizeCatalogDefinitionIds(template.doc),
+}))
 
 export type { WorkflowTemplate }

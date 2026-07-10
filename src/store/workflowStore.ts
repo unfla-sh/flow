@@ -13,7 +13,8 @@ import { useMemo } from 'react'
 
 import { computeLayout, nodeLayoutSize } from '@/lib/autoLayout'
 import { evaluateExpression } from '@/lib/expression'
-import { getCatalogEntry, nodeCatalog } from '@/data/nodeCatalog'
+import { diagramKindOf, edgeDefaultsForKit } from '@/data/diagramKits'
+import { getCatalogEntry, nodeCatalog, normalizeCatalogDefinitionIds } from '@/data/nodeCatalog'
 import { agentLoop } from '@/data/templates/showcase'
 import {
   ROOT_FLOW_ID,
@@ -148,7 +149,7 @@ export interface WorkflowState {
 
 /** The document shown on a fresh first load (no saved draft): the Tour 4 demo. */
 export function buildInitialDoc(): WorkflowDoc {
-  return structuredClone(agentLoop)
+  return normalizeCatalogDefinitionIds(structuredClone(agentLoop))
 }
 
 export function buildDemoDoc(): WorkflowDoc {
@@ -454,8 +455,11 @@ export const useWorkflowStore = create<WorkflowState>()(
         const MID = new Set(['top', 'bottom', 'left', 'right'])
         const twoWay =
           MID.has(connection.sourceHandle ?? '') && MID.has(connection.targetHandle ?? '')
-        set((state) =>
-          commitFlow(state, activeFlowId(state), (graph) => ({
+        set((state) => {
+          const diagramKind = diagramKindOf(state.doc.settings)
+          const defaults = edgeDefaultsForKit(diagramKind)
+          const peerTwoWay = twoWay && (diagramKind === 'workflow' || diagramKind === 'general')
+          return commitFlow(state, activeFlowId(state), (graph) => ({
             ...graph,
             edges: addEdge(
               {
@@ -466,25 +470,29 @@ export const useWorkflowStore = create<WorkflowState>()(
                 targetHandle: normalizeHandle(connection.targetHandle),
                 id: crypto.randomUUID(),
                 type: 'workflow',
-                data: { style: { arrow: true, ...(twoWay ? { arrowStart: true } : {}) } },
+                data: {
+                  ...defaults,
+                  style: { ...defaults.style, ...(peerTwoWay ? { arrowStart: true } : {}) },
+                },
               },
               graph.edges,
             ),
-          })),
-        )
+          }))
+        })
       },
 
       addNode: (catalogId, position, connectFrom) => {
         const entry = getCatalogEntry(catalogId)
         if (!entry) return
         const id = crypto.randomUUID()
-        const data = entry.defaultData()
+        const data: WorkflowNodeData = { ...entry.defaultData(), definitionId: entry.id }
         // Annotation-only nodes have no handles, so a pending connection
         // cannot attach to them — add the node but skip the edge.
         const canConnect =
           connectFrom !== undefined && entry.nodeType !== 'note' && entry.nodeType !== 'frame'
         const backwards = connectFrom?.handleType === 'target'
         const fromHandle = normalizeHandle(connectFrom?.handleId)
+        const edgeDefaults = edgeDefaultsForKit(diagramKindOf(get().doc.settings))
         const newEdge: WorkflowEdge | null = canConnect
           ? {
               id: crypto.randomUUID(),
@@ -493,7 +501,7 @@ export const useWorkflowStore = create<WorkflowState>()(
               target: backwards ? connectFrom.nodeId : id,
               ...(!backwards && fromHandle ? { sourceHandle: fromHandle } : {}),
               ...(backwards && fromHandle ? { targetHandle: fromHandle } : {}),
-              data: { style: { arrow: true } },
+              data: edgeDefaults,
             }
           : null
         set((state) => {
@@ -1032,7 +1040,10 @@ export const useWorkflowStore = create<WorkflowState>()(
           const node = graph?.nodes.find((n) => n.id === nodeId)
           if (!graph || !node) return {}
           const wasSubflow = node.data.nodeType === 'subflow'
-          const freshData = entry.defaultData()
+          const freshData: WorkflowNodeData = {
+            ...entry.defaultData(),
+            definitionId: entry.id,
+          }
           let doc = state.doc
           if (entry.nodeType === 'subflow') {
             const newFlowId = node.data.subFlowId ?? crypto.randomUUID()
@@ -1189,7 +1200,13 @@ export const useWorkflowStore = create<WorkflowState>()(
           type: 'subflow',
           position: { x: cx, y: cy },
           selected: true,
-          data: { label: 'Group', nodeType: 'subflow', params: {}, subFlowId: innerFlowId },
+          data: {
+            label: 'Group',
+            nodeType: 'subflow',
+            definitionId: 'subflow',
+            params: {},
+            subFlowId: innerFlowId,
+          },
         }
 
         set((current) => ({
@@ -1245,7 +1262,7 @@ export const useWorkflowStore = create<WorkflowState>()(
 
       loadDoc: (doc, workflowId = null) => {
         set({
-          doc: structuredClone(doc),
+          doc: normalizeCatalogDefinitionIds(structuredClone(doc)),
           docRevision: get().docRevision + 1,
           docInstanceId: crypto.randomUUID(),
           activeFlowPath: [ROOT_FLOW_ID],

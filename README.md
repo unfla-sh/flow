@@ -2,7 +2,7 @@
 
 **Live:** [flow.unfla.sh](https://flow.unfla.sh) · **Repo:** [unfla-sh/flow](https://github.com/unfla-sh/flow)
 
-**Flow is a browser-based, hierarchical workflow editor** built with React, React Flow and shadcn/ui-style components. It's a three-panel low-code canvas for designing, documenting and reviewing process flows — with rich node types, nested sub-flows, a step-through simulator, live validation, Mermaid/AI import, and full save / load / export / share. Everything runs client-side; nothing is sent to a server.
+**Flow is a browser-based workflow and systems diagram editor** built with React, React Flow and shadcn/ui-style components. It's a three-panel low-code canvas for designing, documenting and reviewing process flows, organization charts, database ER models, infrastructure architecture, and generation pipelines. It includes nested sub-flows, kit-aware validation, Mermaid/AI import, and full save / load / export / share. Everything runs client-side; nothing is sent to a server.
 
 It sits in the same space as n8n, Node-RED and Retool's flow builders, but is deliberately lighter — a fast, self-contained **design and documentation tool** rather than an execution engine.
 
@@ -15,6 +15,8 @@ Anyone who needs to **map a process clearly without standing up infrastructure**
 ### Canvas & nodes
 - **Three-panel layout** — searchable, categorized node palette (with **Favorites** & **Recently-used**) · React Flow canvas (zoom/pan/minimap) · context-aware properties panel. Both sidebars resize & collapse.
 - **Node types** — Start/End, Script, Data (fetch/transform/output), Form (with a field builder: text, number, date, date-range, select, multi-select, checkbox), Condition (true/false), **Switch / Case** (one handle per case + default), Decision (diamond), Sub-Flow, plus Loop / Delay / Error-Handler controls and **Note / Frame / Media** annotations.
+- **Diagram kits** — switch the palette, connection defaults, validation, and tools between Workflow, Organisation, Database ER, Infrastructure, Image Generation, and General diagrams. Starter templates are included for each specialized kit.
+- **Reusable domain nodes** — profile cards for people and roles, row-addressable record/table nodes with keys and data types, and metadata resource cards for servers, network devices, teams, models, and processing stages.
 - **Connections** — drag between nodes; every node also exposes **mid-of-side handles** (top/bottom/left/right) so you can wire into a node's middle. A link drawn between two mid handles defaults to a **two-way arrow** (e.g. web ⇄ db); toggle one/two-way from the edge menu or Style tab. Edges support labels, colour, width, arrow size, **right-angle (step) or curved routing**, and manual bend points.
 - **Styling** — per-node icon (95-icon registry incl. animals/sleep/etc.), custom **icon background** and **text colour**, border/fill/border-style; **dark mode** toggle.
 - **Arrange** — multi-select (Shift), align (left/centre/right/top/middle/bottom), distribute, dagre **auto-layout**, and LR ⇄ TB flow direction.
@@ -30,8 +32,8 @@ Anyone who needs to **map a process clearly without standing up infrastructure**
 ### Save / share / generate
 - **Save / load** — named workflows in browser storage (File ▸ Save / Open) + an autosaved draft so a refresh never loses work (with a storage-full warning). Export/Import `.flow.json` files (schema-validated) and Export PNG.
 - **Import from Mermaid** — paste a `flowchart`/`graph` (or a `.md` with a ```mermaid block); shapes map to node types, `{diamonds}` → decision, subgraphs → frames, `<-->` → two-way, auto-laid-out.
-- **Generate with AI** — describe a pipeline, copy the generated prompt into **any** chat assistant (Poe, ChatGPT, Claude.ai, Gemini…), and paste its JSON answer back. No API key, no provider config, nothing sent from the app — safest path, works with whatever you already use. The same prompt embeds the `.flow.json` schema, so an agent (Claude Code/Codex) can emit a file directly too.
-- **Templates** — File ▸ New from template ▸ four **feature-tour** templates (Basics & Forms · Branching & Data · Sub-flows, Links & Style · Phases, Loops & Step Arrows) that collectively demonstrate every component.
+- **Generate with AI** — describe any supported diagram, copy the generated prompt into **any** chat assistant (Poe, ChatGPT, Claude.ai, Gemini…), and paste its JSON answer back. The prompt includes exact recipes and component ids for workflow, organization, ER, infrastructure, image-generation, and tournament-style templates. No API key, provider config, or server submission is required.
+- **Templates** — File ▸ New from template includes Organisation, Database ER, Infrastructure, and Image Generation starters plus five feature tours that demonstrate the editor surface.
 
 | Shortcut | Action |
 | --- | --- |
@@ -55,16 +57,17 @@ npm test         # vitest unit tests
 
 ## Deployment
 
-Flow is a fully static single-page app, so any static host works. A GitHub
-Actions workflow (`.github/workflows/deploy.yml`) builds and publishes to
-**GitHub Pages** on every push to `main` — just enable Pages (Settings ▸ Pages ▸
-Source: GitHub Actions).
+Flow is a fully static single-page app. Production is served by nginx at
+**[flow.unfla.sh/app/](https://flow.unfla.sh/app/)** from `/var/www/flow/app/`.
+Vite's default base is therefore `/app/`.
 
-It's served from the custom domain **[flow.unfla.sh](https://flow.unfla.sh)** via
-`public/CNAME`, so Vite's `base` stays `/`. Point the domain at GitHub Pages with
-a DNS `CNAME` record (`flow` → `unfla-sh.github.io`), then set it under
-Settings ▸ Pages ▸ Custom domain. To host at `github.io/<repo>/` instead, set
-`BASE_PATH: /<repo>/` on the build step and remove `public/CNAME`.
+```sh
+npm run build
+rsync -a --delete dist/ /var/www/flow/app/
+```
+
+No nginx reload is needed for static asset updates. Set `BASE_PATH` at build
+time when deploying under a different URL prefix.
 
 ## Notes
 - **Private templates**: `src/data/templates/private/` and `workflows/` are git-ignored — drop organisation-specific templates there (each `*.templates.ts` exporting `templates: WorkflowTemplate[]`) and they load locally but never get pushed. The committed showcase tours are safe to publish.

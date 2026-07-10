@@ -3,9 +3,22 @@ import { useMemo, useState, type DragEvent } from 'react'
 
 import { DND_MIME_TYPE } from '@/components/canvas/FlowCanvas'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { NODE_CATEGORIES, getCatalogEntry, nodeCatalog, type NodeCatalogEntry } from '@/data/nodeCatalog'
+import {
+  NODE_CATEGORIES,
+  catalogEntriesForKit,
+  getCatalogEntry,
+  type NodeCatalogEntry,
+} from '@/data/nodeCatalog'
+import { diagramKindOf, diagramKits } from '@/data/diagramKits'
 import { getFavorites, toggleFavorite } from '@/lib/palettePrefs'
 import { cn } from '@/lib/utils'
 import { useWorkflowStore } from '@/store/workflowStore'
@@ -72,6 +85,9 @@ export function NodePalette() {
   const [query, setQuery] = useState('')
   const [favorites, setFavorites] = useState<string[]>(() => getFavorites())
   const recentIds = useWorkflowStore((state) => state.recentCatalogIds)
+  const diagramKind = useWorkflowStore((state) => diagramKindOf(state.doc.settings))
+  const updateSettings = useWorkflowStore((state) => state.updateSettings)
+  const availableEntries = useMemo(() => catalogEntriesForKit(diagramKind), [diagramKind])
 
   const onToggleFavorite = (id: string) => setFavorites(toggleFavorite(id))
 
@@ -83,21 +99,44 @@ export function NodePalette() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return nodeCatalog
-    return nodeCatalog.filter(
+    if (!q) return availableEntries
+    return availableEntries.filter(
       (entry) =>
         entry.label.toLowerCase().includes(q) || entry.description.toLowerCase().includes(q),
     )
-  }, [query])
+  }, [availableEntries, query])
 
   const searching = query.trim().length > 0
-  const favoriteEntries = favorites.map(getCatalogEntry).filter(Boolean) as NodeCatalogEntry[]
-  const recentEntries = recentIds.map(getCatalogEntry).filter(Boolean) as NodeCatalogEntry[]
+  const availableIds = new Set(availableEntries.map((entry) => entry.id))
+  const favoriteEntries = favorites
+    .map(getCatalogEntry)
+    .filter((entry): entry is NodeCatalogEntry => Boolean(entry && availableIds.has(entry.id)))
+  const recentEntries = recentIds
+    .map(getCatalogEntry)
+    .filter((entry): entry is NodeCatalogEntry => Boolean(entry && availableIds.has(entry.id)))
 
   return (
     <div className="flex h-full flex-col">
       <div className="border-b p-3">
-        <div className="relative">
+        <div className="space-y-2">
+          <Select
+            value={diagramKind}
+            onValueChange={(value) =>
+              updateSettings({ diagramKind: value as typeof diagramKind })
+            }
+          >
+            <SelectTrigger aria-label="Diagram kit" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {diagramKits.map((kit) => (
+                <SelectItem key={kit.id} value={kit.id}>
+                  {kit.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="relative">
           <SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={query}
@@ -105,6 +144,7 @@ export function NodePalette() {
             placeholder="Search nodes…"
             className="pl-8"
           />
+          </div>
         </div>
       </div>
       <ScrollArea className="flex-1">

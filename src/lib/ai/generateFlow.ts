@@ -1,11 +1,12 @@
 import { finalizeImportedDoc } from '@/lib/autoLayout'
 import { parseWorkflowFile } from '@/lib/workflowFile'
+import { normalizeCatalogDefinitionIds } from '@/data/nodeCatalog'
 import type { WorkflowDoc } from '@/types/workflow'
 
 import { FLOW_SCHEMA_PROMPT } from './flowSchemaPrompt'
 
 const USER_PREAMBLE =
-  'Build a workflow diagram for the following. Respond with ONLY the JSON document.\n\n'
+  'Build the most appropriate workflow or systems diagram for the following. Respond with ONLY the JSON document.\n\n'
 
 /** The full prompt (schema + request) to paste into any chat assistant. */
 export function buildFullPrompt(description: string): string {
@@ -18,7 +19,7 @@ export function parseGeneratedText(
 ): { ok: true; doc: WorkflowDoc } | { ok: false; error: string } {
   const parsed = parseWorkflowFile(extractJson(text))
   if (!parsed.ok) return { ok: false, error: parsed.error }
-  return { ok: true, doc: finalizeImportedDoc(parsed.doc) }
+  return { ok: true, doc: normalizeCatalogDefinitionIds(finalizeImportedDoc(parsed.doc)) }
 }
 
 /** Pull a JSON object out of a model response that may wrap it in prose/fences. */

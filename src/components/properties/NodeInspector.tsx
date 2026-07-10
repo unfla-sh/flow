@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 
 import { Badge } from '@/components/ui/badge'
@@ -19,17 +19,20 @@ import {
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { NODE_CATEGORIES, nodeCatalog } from '@/data/nodeCatalog'
+import { catalogEntriesForKit, NODE_CATEGORIES, nodeCatalog } from '@/data/nodeCatalog'
+import { diagramKindOf } from '@/data/diagramKits'
 import { useDebouncedCallback } from '@/lib/useDebouncedCallback'
 import { useSelectedNodeCount, useWorkflowStore } from '@/store/workflowStore'
 import type { WorkflowNode } from '@/types/workflow'
 
 import { FormBuilder } from './FormBuilder'
+import { DataEditor } from './DataEditor'
 import { IconPicker } from './IconPicker'
 import { JsonOutputEditor } from './JsonOutputEditor'
 import { ScoreCardEditor } from './ScoreCardEditor'
 import { ScriptEditor } from './ScriptEditor'
 import { SwitchCasesEditor } from './SwitchCasesEditor'
+import { ProfileEditor, RecordEditor, ResourceEditor } from './StructuredNodeEditors'
 
 const generalSchema = z.object({
   label: z.string().min(1, 'Label is required'),
@@ -43,11 +46,13 @@ function GeneralTab({ node }: { node: WorkflowNode }) {
   const applyToSelectedNodes = useWorkflowStore((state) => state.applyToSelectedNodes)
   const replaceNodeType = useWorkflowStore((state) => state.replaceNodeType)
   const selectedCount = useSelectedNodeCount()
+  const diagramKind = useWorkflowStore((state) => diagramKindOf(state.doc.settings))
+  const availableEntries = catalogEntriesForKit(diagramKind)
   const bulk = selectedCount > 1
 
   const {
     register,
-    watch,
+    control,
     formState: { errors },
   } = useForm<GeneralValues>({
     resolver: zodResolver(generalSchema),
@@ -57,6 +62,7 @@ function GeneralTab({ node }: { node: WorkflowNode }) {
       description: node.data.description ?? '',
     },
   })
+  const values = useWatch({ control })
 
   const syncToStore = useDebouncedCallback((values: GeneralValues) => {
     updateNodeData(node.id, {
@@ -66,12 +72,9 @@ function GeneralTab({ node }: { node: WorkflowNode }) {
   })
 
   useEffect(() => {
-    const subscription = watch((values) => {
-      const parsed = generalSchema.safeParse(values)
-      if (parsed.success) syncToStore(parsed.data)
-    })
-    return () => subscription.unsubscribe()
-  }, [watch, syncToStore])
+    const parsed = generalSchema.safeParse(values)
+    if (parsed.success) syncToStore(parsed.data)
+  }, [syncToStore, values])
 
   return (
     <div className="space-y-4">
@@ -91,7 +94,11 @@ function GeneralTab({ node }: { node: WorkflowNode }) {
       <div className="space-y-1.5">
         <Label>Type</Label>
         <Select
-          value={nodeCatalog.find((e) => e.nodeType === node.data.nodeType)?.id ?? ''}
+          value={
+            node.data.definitionId ??
+            nodeCatalog.find((entry) => entry.nodeType === node.data.nodeType)?.id ??
+            ''
+          }
           onValueChange={(catalogId) => replaceNodeType(node.id, catalogId)}
         >
           <SelectTrigger>
@@ -99,7 +106,7 @@ function GeneralTab({ node }: { node: WorkflowNode }) {
           </SelectTrigger>
           <SelectContent>
             {NODE_CATEGORIES.map((category, index) => {
-              const entries = nodeCatalog.filter((e) => e.category === category)
+              const entries = availableEntries.filter((entry) => entry.category === category)
               if (entries.length === 0) return null
               return (
                 <SelectGroup key={category}>
@@ -352,6 +359,10 @@ function BehaviorTab({ node }: { node: WorkflowNode }) {
   if (node.data.nodeType === 'note') return <NoteTab node={node} />
   if (node.data.nodeType === 'media') return <MediaTab node={node} />
   if (node.data.nodeType === 'scorecard') return <ScoreCardEditor node={node} />
+  if (node.data.nodeType === 'data') return <DataEditor node={node} />
+  if (node.data.nodeType === 'profile') return <ProfileEditor node={node} />
+  if (node.data.nodeType === 'record') return <RecordEditor node={node} />
+  if (node.data.nodeType === 'resource') return <ResourceEditor node={node} />
 
   return (
     <div className="rounded-md border bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">

@@ -21,6 +21,10 @@ export function nodeLayoutSize(node: WorkflowNode): { width: number; height: num
   }
   if (node.data.nodeType === 'frame') return { width: 280, height: 180 }
   if (node.data.nodeType === 'note') return { width: 180, height: 120 }
+  if (node.data.nodeType === 'profile') return { width: 288, height: 150 }
+  if (node.data.nodeType === 'record') {
+    return { width: 288, height: 58 + Math.max(1, node.data.fields?.length ?? 0) * 32 }
+  }
   return { width: 208, height: 110 }
 }
 

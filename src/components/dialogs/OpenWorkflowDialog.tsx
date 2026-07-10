@@ -1,5 +1,5 @@
 import { Trash2Icon } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -20,18 +20,15 @@ export function OpenWorkflowDialog({
   onOpenChange: (open: boolean) => void
   onOpenWorkflow: (id: string) => void
 }) {
-  const [refreshTick, setRefreshTick] = useState(0)
-  const workflows = useMemo<WorkflowMeta[]>(
-    () => (open ? listWorkflows() : []),
-    [open, refreshTick],
-  )
+  const [, setRefreshTick] = useState(0)
+  const workflows: WorkflowMeta[] = open ? listWorkflows() : []
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Open workflow</DialogTitle>
-          <DialogDescription>Workflows saved in this browser.</DialogDescription>
+          <DialogTitle>Open diagram</DialogTitle>
+          <DialogDescription>Diagrams saved in this browser.</DialogDescription>
         </DialogHeader>
         <div className="max-h-72 space-y-1 overflow-y-auto">
           {workflows.length === 0 && (

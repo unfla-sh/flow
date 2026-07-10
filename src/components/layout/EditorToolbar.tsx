@@ -61,6 +61,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { templates } from '@/data/templates'
+import { diagramKindOf } from '@/data/diagramKits'
 import type { FlowDirection } from '@/types/workflow'
 import {
   exportToJsonFile,
@@ -139,6 +140,7 @@ export function EditorToolbar({
   const presentationMode = useWorkflowStore((state) => state.presentationMode)
   const setPresentationMode = useWorkflowStore((state) => state.setPresentationMode)
   const sim = useWorkflowStore((state) => state.sim)
+  const diagramKind = useWorkflowStore((state) => diagramKindOf(state.doc.settings))
   const activeFlowDirection = useWorkflowStore((state) => {
     const flowId = state.activeFlowPath[state.activeFlowPath.length - 1]
     return state.doc.flows[flowId]?.settings?.direction ?? 'lr'
@@ -200,10 +202,10 @@ export function EditorToolbar({
 
   // Auto-advance the simulation while it's running.
   useEffect(() => {
-    if (sim.status !== 'running') return
+    if (diagramKind !== 'workflow' || sim.status !== 'running') return
     const timer = setInterval(() => useWorkflowStore.getState().simStep(), 750)
     return () => clearInterval(timer)
-  }, [sim.status])
+  }, [diagramKind, sim.status])
 
   // Surface localStorage quota failures (otherwise saves fail silently).
   useEffect(() => {
@@ -241,7 +243,7 @@ export function EditorToolbar({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start">
           <DropdownMenuItem
-            onSelect={() => guarded('New workflow', () => useWorkflowStore.getState().newWorkflow())}
+            onSelect={() => guarded('New diagram', () => useWorkflowStore.getState().newWorkflow())}
           >
             New
           </DropdownMenuItem>
@@ -273,7 +275,7 @@ export function EditorToolbar({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem
-            onSelect={() => guarded('Import workflow', () => fileInputRef.current?.click())}
+            onSelect={() => guarded('Import diagram', () => fileInputRef.current?.click())}
           >
             Import JSON…
           </DropdownMenuItem>
@@ -305,7 +307,7 @@ export function EditorToolbar({
                 setError({
                   title: 'Share link copied',
                   message:
-                    'A link to this workflow is on your clipboard — opening it loads this flow. The flow is gzip-compressed into the link (which lives in the URL hash, never sent to a server), so even large flows share fine; use Export JSON if a tool truncates very long links.',
+                    'A link to this diagram is on your clipboard. The document is compressed into the URL hash and is never sent to a server. Use Export JSON if another tool truncates very long links.',
                 })
               } catch {
                 setError({ title: 'Copy failed', message: 'Could not access the clipboard.' })
@@ -368,43 +370,47 @@ export function EditorToolbar({
       <ValidationMenu />
       <Separator orientation="vertical" className="!h-5" />
 
-      {sim.status !== 'idle' && (
-        <Badge variant="secondary" className="shrink-0 gap-1 tabular-nums">
-          {sim.status === 'done' ? 'finished' : `step ${sim.step}`}
-        </Badge>
+      {diagramKind === 'workflow' && (
+        <>
+          {sim.status !== 'idle' && (
+            <Badge variant="secondary" className="shrink-0 gap-1 tabular-nums">
+              {sim.status === 'done' ? 'finished' : `step ${sim.step}`}
+            </Badge>
+          )}
+          {sim.status === 'running' ? (
+            <IconAction label="Pause simulation" onClick={() => useWorkflowStore.getState().simPause()}>
+              <PauseIcon />
+            </IconAction>
+          ) : (
+            <IconAction
+              label={sim.status === 'idle' ? 'Run simulation' : 'Resume simulation'}
+              onClick={() => useWorkflowStore.getState().simPlay()}
+            >
+              <PlayIcon />
+            </IconAction>
+          )}
+          <IconAction
+            label="Step simulation"
+            disabled={sim.status === 'done'}
+            onClick={() => {
+              const s = useWorkflowStore.getState()
+              if (s.sim.status === 'idle') s.simReset()
+              else if (s.sim.status === 'running') s.simPause()
+              s.simStep()
+            }}
+          >
+            <SkipForwardIcon />
+          </IconAction>
+          <IconAction
+            label="Stop simulation"
+            disabled={sim.status === 'idle'}
+            onClick={() => useWorkflowStore.getState().simStop()}
+          >
+            <SquareIcon />
+          </IconAction>
+          <Separator orientation="vertical" className="!h-5" />
+        </>
       )}
-      {sim.status === 'running' ? (
-        <IconAction label="Pause simulation" onClick={() => useWorkflowStore.getState().simPause()}>
-          <PauseIcon />
-        </IconAction>
-      ) : (
-        <IconAction
-          label={sim.status === 'idle' ? 'Run simulation' : 'Resume simulation'}
-          onClick={() => useWorkflowStore.getState().simPlay()}
-        >
-          <PlayIcon />
-        </IconAction>
-      )}
-      <IconAction
-        label="Step simulation"
-        disabled={sim.status === 'done'}
-        onClick={() => {
-          const s = useWorkflowStore.getState()
-          if (s.sim.status === 'idle') s.simReset()
-          else if (s.sim.status === 'running') s.simPause()
-          s.simStep()
-        }}
-      >
-        <SkipForwardIcon />
-      </IconAction>
-      <IconAction
-        label="Stop simulation"
-        disabled={sim.status === 'idle'}
-        onClick={() => useWorkflowStore.getState().simStop()}
-      >
-        <SquareIcon />
-      </IconAction>
-      <Separator orientation="vertical" className="!h-5" />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -540,7 +546,7 @@ export function EditorToolbar({
         onOpenChange={setOpenOpen}
         onOpenWorkflow={(id) => {
           setOpenOpen(false)
-          guarded('Open workflow', () => {
+          guarded('Open diagram', () => {
             if (!loadWorkflowById(id)) {
               setError({ title: 'Open failed', message: 'This workflow could not be loaded.' })
             }
@@ -551,7 +557,7 @@ export function EditorToolbar({
       <Dialog open={saveAsOpen} onOpenChange={setSaveAsOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save workflow</DialogTitle>
+            <DialogTitle>Save diagram</DialogTitle>
             <DialogDescription>Saved in this browser. Use Export JSON to share a file.</DialogDescription>
           </DialogHeader>
           <Input
@@ -613,7 +619,7 @@ export function EditorToolbar({
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            A hierarchical workflow editor. More details coming soon.
+            A browser-based editor for workflows, organization charts, ER models, infrastructure, and generation pipelines.
           </p>
           <p className="text-sm text-muted-foreground">
             <a

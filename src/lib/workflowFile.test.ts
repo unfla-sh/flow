@@ -74,6 +74,72 @@ describe('workflowFile', () => {
     expect(parsed.doc.meta?.exportedAt).toBe('2026-06-13T00:00:00.000Z')
   })
 
+  it('preserves diagram kit nodes, semantic edges, and flow direction', () => {
+    const doc: WorkflowDoc = {
+      schemaVersion: 1,
+      settings: { name: 'ER', version: '1.0.0', diagramKind: 'database' },
+      flows: {
+        root: {
+          settings: { direction: 'tb' },
+          nodes: [
+            {
+              id: 'users',
+              type: 'record',
+              position: { x: 0, y: 0 },
+              data: {
+                label: 'users',
+                nodeType: 'record',
+                definitionId: 'database.table',
+                params: { namespace: 'public', recordKind: 'Table' },
+                fields: [
+                  { id: 'user-id', name: 'id', dataType: 'uuid', key: 'primary' },
+                ],
+              },
+            },
+            {
+              id: 'orders',
+              type: 'record',
+              position: { x: 300, y: 0 },
+              data: {
+                label: 'orders',
+                nodeType: 'record',
+                definitionId: 'database.table',
+                params: {},
+                fields: [
+                  { id: 'order-user', name: 'user_id', dataType: 'uuid', key: 'foreign' },
+                ],
+              },
+            },
+          ],
+          edges: [
+            {
+              id: 'rel',
+              source: 'users',
+              target: 'orders',
+              sourceHandle: 'field:user-id:right',
+              targetHandle: 'field:order-user:left',
+              data: {
+                kind: 'relationship',
+                sourceCardinality: 'one',
+                targetCardinality: 'zero-many',
+                style: { lineStyle: 'dashed' },
+              },
+            },
+          ],
+        },
+      },
+    }
+    const parsed = parseWorkflowFile(serializeDoc(doc))
+    expect(parsed.ok).toBe(true)
+    if (!parsed.ok) return
+    expect(parsed.doc.settings.diagramKind).toBe('database')
+    expect(parsed.doc.flows.root.settings?.direction).toBe('tb')
+    expect(parsed.doc.flows.root.nodes[0].data.definitionId).toBe('database.table')
+    expect(parsed.doc.flows.root.nodes[0].data.fields?.[0].key).toBe('primary')
+    expect(parsed.doc.flows.root.edges[0].data?.targetCardinality).toBe('zero-many')
+    expect(parsed.doc.flows.root.edges[0].data?.style?.lineStyle).toBe('dashed')
+  })
+
   it('rejects invalid JSON with a readable error', () => {
     const r = parseWorkflowFile('{ not json')
     expect(r.ok).toBe(false)

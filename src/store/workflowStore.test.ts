@@ -21,7 +21,20 @@ describe('workflowStore', () => {
     const after = active().nodes
     expect(after).toHaveLength(before + 1)
     expect(after.at(-1)!.selected).toBe(true)
+    expect(after.at(-1)!.data.definitionId).toBe('fetch')
     expect(useWorkflowStore.getState().recentCatalogIds[0]).toBe('fetch')
+  })
+
+  it('uses kit-specific defaults for database relationships', () => {
+    const doc = buildDemoDoc()
+    doc.settings.diagramKind = 'database'
+    reset(doc)
+    const state = useWorkflowStore.getState()
+    state.onConnect({ source: 'demo-start', target: 'demo-script', sourceHandle: null, targetHandle: null })
+    const edge = active().edges.at(-1)!
+    expect(edge.data?.kind).toBe('relationship')
+    expect(edge.data?.sourceCardinality).toBe('one')
+    expect(edge.data?.targetCardinality).toBe('many')
   })
 
   it('copy + paste duplicates the selection with fresh ids', () => {

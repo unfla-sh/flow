@@ -9,7 +9,6 @@ import {
   type EdgeMouseHandler,
   type EdgeTypes,
   type NodeMouseHandler,
-  type NodeTypes,
   type OnConnectEnd,
 } from '@xyflow/react'
 import {
@@ -26,37 +25,10 @@ import { useActiveFlow, useWorkflowStore } from '@/store/workflowStore'
 import type { WorkflowEdge as WorkflowEdgeType, WorkflowNode } from '@/types/workflow'
 
 import { CanvasContextMenu, type ContextMenuState } from './CanvasContextMenu'
-import { ConditionNode } from './nodes/ConditionNode'
-import { DataNode } from './nodes/DataNode'
-import { DecisionNode } from './nodes/DecisionNode'
-import { FormNode } from './nodes/FormNode'
-import { FrameNode } from './nodes/FrameNode'
-import { MediaNode } from './nodes/MediaNode'
-import { NoteNode } from './nodes/NoteNode'
-import { ScoreCardNode } from './nodes/ScoreCardNode'
-import { ScriptNode } from './nodes/ScriptNode'
-import { EndNode, StartNode } from './nodes/StartEndNode'
-import { SubFlowNode } from './nodes/SubFlowNode'
-import { SwitchNode } from './nodes/SwitchNode'
 import { WorkflowEdge as WorkflowEdgeComponent } from './WorkflowEdge'
+import { workflowNodeTypes } from './workflowNodeTypes'
 
 export const DND_MIME_TYPE = 'application/workflow-node'
-
-const nodeTypes: NodeTypes = {
-  start: StartNode,
-  end: EndNode,
-  decision: DecisionNode,
-  script: ScriptNode,
-  form: FormNode,
-  data: DataNode,
-  condition: ConditionNode,
-  switch: SwitchNode,
-  subflow: SubFlowNode,
-  note: NoteNode,
-  frame: FrameNode,
-  media: MediaNode,
-  scorecard: ScoreCardNode,
-}
 
 const edgeTypes: EdgeTypes = {
   workflow: WorkflowEdgeComponent,
@@ -259,7 +231,7 @@ export function FlowCanvas() {
         key={`${docInstanceId}:${activeFlowId}`}
         nodes={renderedNodes}
         edges={renderedEdges}
-        nodeTypes={nodeTypes}
+        nodeTypes={workflowNodeTypes}
         edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
