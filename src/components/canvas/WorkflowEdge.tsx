@@ -21,6 +21,22 @@ const EDGE_STROKES: Record<EdgeKind, string> = {
   dependency: '#d97706',
 }
 
+/*
+ * PNG export runs the canvas through html-to-image, which deep-clones every
+ * <svg> subtree verbatim: no stylesheet travels with it and no computed style
+ * is inlined. Anything an SVG child gets from a CSS class is therefore lost in
+ * the exported image, which is why label backgrounds came out as black boxes
+ * with oversized text. Pinning the paint and the font inline keeps the label
+ * identical on canvas and in the export.
+ */
+const LABEL_BG_STYLE = { fill: '#ffffff' }
+const LABEL_TEXT_STYLE = {
+  fill: '#000000',
+  fontSize: 10,
+  fontFamily:
+    "'Twemoji Country Flags', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+}
+
 const CARDINALITY_LABELS: Record<EdgeCardinality, string> = {
   one: '1',
   'zero-one': '0..1',
@@ -157,7 +173,10 @@ export function WorkflowEdge({
   const staticEdgeStyle = {
     stroke,
     strokeWidth: selected ? lineWidth + 0.75 : lineWidth,
-    ...(strokeDasharray ? { strokeDasharray } : {}),
+    // An animated edge takes its dash pattern from the `workflow-edge-animated`
+    // class, which export drops with the rest of the class-based SVG styling;
+    // repeat the pattern inline so the exported edge stays dashed.
+    ...(strokeDasharray ? { strokeDasharray } : animated ? { strokeDasharray: '6' } : {}),
   }
   const sourceCardinality = data?.sourceCardinality ?? 'one'
   const targetCardinality = data?.targetCardinality ?? 'many'
@@ -262,6 +281,8 @@ export function WorkflowEdge({
             id={`${id}-target`}
             path={bidirectionalTargetPath}
             label={renderedLabel}
+            labelStyle={LABEL_TEXT_STYLE}
+            labelBgStyle={LABEL_BG_STYLE}
             labelX={bidirectionalMidpoint.x}
             labelY={bidirectionalMidpoint.y}
             markerEnd={`url(#${markerEndId})`}
@@ -274,6 +295,8 @@ export function WorkflowEdge({
           id={id}
           path={path}
           label={renderedLabel}
+          labelStyle={LABEL_TEXT_STYLE}
+          labelBgStyle={LABEL_BG_STYLE}
           labelX={route?.kind === 'manual' ? manualLabel.x : labelX}
           labelY={route?.kind === 'manual' ? manualLabel.y : labelY}
           markerStart={showStartArrow ? `url(#${markerStartId})` : undefined}
