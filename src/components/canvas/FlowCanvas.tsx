@@ -34,6 +34,15 @@ const edgeTypes: EdgeTypes = {
   workflow: WorkflowEdgeComponent,
 }
 
+/**
+ * Frames are backdrops, so they have to paint *below* the edge layer. Edges
+ * sit at z-index 0 and the node layer comes after the edge layer in the DOM,
+ * so a frame at 0 wins the tie and hides every arrow crossing it.
+ */
+const FRAME_Z = -1
+/** React Flow's `elevateNodesOnSelect` bump, which we cancel out for frames. */
+const SELECTED_NODE_Z = 1000
+
 export function FlowCanvas() {
   const { nodes, edges } = useActiveFlow()
   const presentationMode = useWorkflowStore((state) => state.presentationMode)
@@ -77,7 +86,10 @@ export function FlowCanvas() {
               : undefined
         return {
           ...node,
-          zIndex: node.data.nodeType === 'frame' ? 0 : (node.zIndex ?? 1),
+          zIndex:
+            node.data.nodeType === 'frame'
+              ? FRAME_Z - (node.selected ? SELECTED_NODE_Z : 0)
+              : (node.zIndex ?? 1),
           ...(simClass ? { className: [node.className, simClass].filter(Boolean).join(' ') } : {}),
         }
       }),
