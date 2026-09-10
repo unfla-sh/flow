@@ -2,6 +2,7 @@ import { getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import { toPng } from 'html-to-image'
 
 import type { WorkflowTemplate } from '@/data/templates'
+import { newId } from '@/lib/ids'
 import { clearShareHash, hasSharedDoc, readSharedDoc } from '@/lib/share'
 import { APP_VERSION } from '@/lib/version'
 import { parseWorkflowFile, sanitizeDoc, serializeDoc } from '@/lib/workflowFile'
@@ -61,7 +62,7 @@ export function saveCurrentWorkflow(asNewName?: string): string {
     state.updateSettings({ name: asNewName.trim() })
   }
   const fresh = useWorkflowStore.getState()
-  const id = asNewName ? crypto.randomUUID() : (fresh.currentWorkflowId ?? crypto.randomUUID())
+  const id = asNewName ? newId() : (fresh.currentWorkflowId ?? newId())
   if (!safeSetItem(DOC_PREFIX + id, serializeDoc(fresh.doc))) return id
   const meta: WorkflowMeta = {
     id,

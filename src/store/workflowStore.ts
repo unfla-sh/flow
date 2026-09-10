@@ -16,6 +16,7 @@ import { evaluateExpression } from '@/lib/expression'
 import { diagramKindOf, edgeDefaultsForKit } from '@/data/diagramKits'
 import { getCatalogEntry, nodeCatalog, normalizeCatalogDefinitionIds } from '@/data/nodeCatalog'
 import { agentLoop } from '@/data/templates/showcase'
+import { newId } from '@/lib/ids'
 import {
   ROOT_FLOW_ID,
   SWITCH_DEFAULT_HANDLE,
@@ -349,11 +350,11 @@ function remapPayload(payload: ClipboardPayload): {
 } {
   const cloned = structuredClone(payload)
   const flowIdMap = new Map<string, string>()
-  for (const oldId of Object.keys(cloned.flows)) flowIdMap.set(oldId, crypto.randomUUID())
+  for (const oldId of Object.keys(cloned.flows)) flowIdMap.set(oldId, newId())
 
   const remapGraph = (nodes: WorkflowNode[], edges: WorkflowEdge[]) => {
     const nodeIdMap = new Map<string, string>()
-    for (const node of nodes) nodeIdMap.set(node.id, crypto.randomUUID())
+    for (const node of nodes) nodeIdMap.set(node.id, newId())
     const newNodes = nodes.map((node) => ({
       ...node,
       id: nodeIdMap.get(node.id)!,
@@ -368,7 +369,7 @@ function remapPayload(payload: ClipboardPayload): {
       .filter((e) => nodeIdMap.has(e.source) && nodeIdMap.has(e.target))
       .map((e) => ({
         ...e,
-        id: crypto.randomUUID(),
+        id: newId(),
         source: nodeIdMap.get(e.source)!,
         target: nodeIdMap.get(e.target)!,
       }))
@@ -407,7 +408,7 @@ export const useWorkflowStore = create<WorkflowState>()(
     (set, get) => ({
       doc: buildInitialDoc(),
       docRevision: 0,
-      docInstanceId: crypto.randomUUID(),
+      docInstanceId: newId(),
       activeFlowPath: [ROOT_FLOW_ID],
       selectedNodeId: null,
       selectedEdgeId: null,
@@ -468,7 +469,7 @@ export const useWorkflowStore = create<WorkflowState>()(
                 // hover lookup; stored edges keep the historical null form.
                 sourceHandle: normalizeHandle(connection.sourceHandle),
                 targetHandle: normalizeHandle(connection.targetHandle),
-                id: crypto.randomUUID(),
+                id: newId(),
                 type: 'workflow',
                 data: {
                   ...defaults,
@@ -484,7 +485,7 @@ export const useWorkflowStore = create<WorkflowState>()(
       addNode: (catalogId, position, connectFrom) => {
         const entry = getCatalogEntry(catalogId)
         if (!entry) return
-        const id = crypto.randomUUID()
+        const id = newId()
         const data: WorkflowNodeData = { ...entry.defaultData(), definitionId: entry.id }
         // Annotation-only nodes have no handles, so a pending connection
         // cannot attach to them — add the node but skip the edge.
@@ -495,7 +496,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         const edgeDefaults = edgeDefaultsForKit(diagramKindOf(get().doc.settings))
         const newEdge: WorkflowEdge | null = canConnect
           ? {
-              id: crypto.randomUUID(),
+              id: newId(),
               type: 'workflow',
               source: backwards ? id : connectFrom.nodeId,
               target: backwards ? connectFrom.nodeId : id,
@@ -508,7 +509,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           let doc = state.doc
           // Sub-flow nodes get their inner flow immediately so Open always works.
           if (entry.nodeType === 'subflow') {
-            const flowId = crypto.randomUUID()
+            const flowId = newId()
             data.subFlowId = flowId
             doc = {
               ...doc,
@@ -1046,7 +1047,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
           let doc = state.doc
           if (entry.nodeType === 'subflow') {
-            const newFlowId = node.data.subFlowId ?? crypto.randomUUID()
+            const newFlowId = node.data.subFlowId ?? newId()
             freshData.subFlowId = newFlowId
             if (!doc.flows[newFlowId]) {
               doc = {
@@ -1124,7 +1125,7 @@ export const useWorkflowStore = create<WorkflowState>()(
           let innerId = node.data.subFlowId
           let revisionBump = 0
           if (!innerId || !doc.flows[innerId]) {
-            innerId = innerId ?? crypto.randomUUID()
+            innerId = innerId ?? newId()
             doc = {
               ...doc,
               flows: {
@@ -1171,8 +1172,8 @@ export const useWorkflowStore = create<WorkflowState>()(
         const internalEdges = graph.edges.filter(
           (e) => selectedIds.has(e.source) && selectedIds.has(e.target),
         )
-        const innerFlowId = crypto.randomUUID()
-        const subId = crypto.randomUUID()
+        const innerFlowId = newId()
+        const subId = newId()
 
         // Crossing edges reconnect to the group node; dedupe per direction.
         const seenIn = new Set<string>()
@@ -1249,7 +1250,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         set({
           doc: emptyDoc(),
           docRevision: get().docRevision + 1,
-          docInstanceId: crypto.randomUUID(),
+          docInstanceId: newId(),
           activeFlowPath: [ROOT_FLOW_ID],
           selectedNodeId: null,
           selectedEdgeId: null,
@@ -1264,7 +1265,7 @@ export const useWorkflowStore = create<WorkflowState>()(
         set({
           doc: normalizeCatalogDefinitionIds(structuredClone(doc)),
           docRevision: get().docRevision + 1,
-          docInstanceId: crypto.randomUUID(),
+          docInstanceId: newId(),
           activeFlowPath: [ROOT_FLOW_ID],
           selectedNodeId: null,
           selectedEdgeId: null,

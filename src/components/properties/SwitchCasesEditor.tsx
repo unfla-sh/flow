@@ -3,6 +3,7 @@ import { PlusIcon, Trash2Icon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { newId } from '@/lib/ids'
 import { useWorkflowStore } from '@/store/workflowStore'
 import type { SwitchCase, WorkflowNode } from '@/types/workflow'
 
@@ -44,7 +45,7 @@ export function SwitchCasesEditor({ node }: { node: WorkflowNode }) {
             size="icon-sm"
             aria-label="Add case"
             onClick={() =>
-              updateSwitchCases(node.id, [...cases, { id: crypto.randomUUID(), when: '' }])
+              updateSwitchCases(node.id, [...cases, { id: newId(), when: '' }])
             }
           >
             <PlusIcon />

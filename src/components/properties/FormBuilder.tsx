@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { newId } from '@/lib/ids'
 import { useWorkflowStore } from '@/store/workflowStore'
 import {
   FIELD_TYPE_LABELS,
@@ -330,7 +331,7 @@ export function FormBuilder({ node }: { node: WorkflowNode }) {
           setFields([
             ...fields,
             {
-              id: crypto.randomUUID(),
+              id: newId(),
               label: `Field ${fields.length + 1}`,
               type: 'text',
             },

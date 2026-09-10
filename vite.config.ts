@@ -21,7 +21,14 @@ export default defineConfig({
     },
   },
   server: {
+    // Bind every interface, not just loopback, so the dev server is reachable
+    // from other machines as http://<this-host-ip>:5173/app/. Same as `--host`.
+    host: true,
     // allow access through Cloudflare quick tunnels
+    allowedHosts: ['.trycloudflare.com'],
+  },
+  preview: {
+    host: true,
     allowedHosts: ['.trycloudflare.com'],
   },
 })

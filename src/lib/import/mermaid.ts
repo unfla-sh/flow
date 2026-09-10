@@ -1,4 +1,5 @@
 import { finalizeImportedDoc } from '@/lib/autoLayout'
+import { newId } from '@/lib/ids'
 import type { ParseResult } from '@/lib/workflowFile'
 import {
   ROOT_FLOW_ID,
@@ -167,7 +168,7 @@ export function parseMermaid(input: string): ParseResult {
       const sourceHandle =
         srcType === 'condition' || srcType === 'decision' ? conditionHandle(label) : undefined
       state.edges.push({
-        id: crypto.randomUUID(),
+        id: newId(),
         source: srcId,
         target: tgtId,
         ...(sourceHandle ? { sourceHandle } : {}),
@@ -221,7 +222,7 @@ export function parseMermaid(input: string): ParseResult {
       const maxX = Math.max(...members.map((m) => m.position.x + (m.width ?? 208)))
       const maxY = Math.max(...members.map((m) => m.position.y + (m.height ?? 110)))
       frameNodes.push({
-        id: `frame-${i}-${crypto.randomUUID().slice(0, 8)}`,
+        id: `frame-${i}-${newId().slice(0, 8)}`,
         type: 'frame',
         position: { x: minX - PAD, y: minY - PAD - 24 },
         width: maxX - minX + PAD * 2,

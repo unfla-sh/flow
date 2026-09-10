@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { newId } from '@/lib/ids'
 import { useWorkflowStore } from '@/store/workflowStore'
 import type { ScriptArg, WorkflowNode } from '@/types/workflow'
 
@@ -41,7 +42,7 @@ export function ScriptEditor({ node }: { node: WorkflowNode }) {
             size="icon-sm"
             aria-label="Add argument"
             onClick={() =>
-              setArgs([...args, { id: crypto.randomUUID(), key: '', value: '' }])
+              setArgs([...args, { id: newId(), key: '', value: '' }])
             }
           >
             <PlusIcon />

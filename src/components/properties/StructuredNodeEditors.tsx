@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
+import { newId } from '@/lib/ids'
 import { useWorkflowStore } from '@/store/workflowStore'
 import type {
   NodeAttribute,
@@ -33,7 +34,7 @@ function AttributeEditor({ node }: { node: WorkflowNode }) {
           size="icon-sm"
           aria-label="Add metadata row"
           onClick={() =>
-            update([...attributes, { id: crypto.randomUUID(), label: 'Label', value: '' }])
+            update([...attributes, { id: newId(), label: 'Label', value: '' }])
           }
         >
           <PlusIcon />
@@ -167,7 +168,7 @@ export function RecordEditor({ node }: { node: WorkflowNode }) {
               update([
                 ...fields,
                 {
-                  id: crypto.randomUUID(),
+                  id: newId(),
                   name: `field_${fields.length + 1}`,
                   dataType: 'text',
                   key: 'none',
