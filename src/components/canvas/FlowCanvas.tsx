@@ -7,6 +7,7 @@ import {
   useReactFlow,
   useUpdateNodeInternals,
   type EdgeMouseHandler,
+  type OnReconnect,
   type EdgeTypes,
   type NodeMouseHandler,
   type OnConnectEnd,
@@ -61,6 +62,7 @@ export function FlowCanvas() {
   const addNode = useWorkflowStore((state) => state.addNode)
   const setSelectedNode = useWorkflowStore((state) => state.setSelectedNode)
   const setSelectedEdge = useWorkflowStore((state) => state.setSelectedEdge)
+  const reconnectEdge = useWorkflowStore((state) => state.reconnectEdge)
   const clearSelection = useWorkflowStore((state) => state.clearSelection)
   const openSubFlow = useWorkflowStore((state) => state.openSubFlow)
 
@@ -189,6 +191,13 @@ export function FlowCanvas() {
     [setSelectedEdge],
   )
 
+  // Dragging an edge end onto another handle re-attaches it. Without this
+  // handler React Flow shows the drag but the edge snaps back on release.
+  const onReconnect: OnReconnect<WorkflowEdgeType> = useCallback(
+    (oldEdge, connection) => reconnectEdge(oldEdge.id, connection),
+    [reconnectEdge],
+  )
+
   const onNodeContextMenu: NodeMouseHandler<WorkflowNode> = useCallback(
     (event, node) => {
       if (useWorkflowStore.getState().presentationMode) return
@@ -253,6 +262,7 @@ export function FlowCanvas() {
         onNodeClick={onNodeClick}
         onNodeDoubleClick={onNodeDoubleClick}
         onEdgeClick={onEdgeClick}
+        onReconnect={onReconnect}
         onPaneClick={onPaneClick}
         onNodeContextMenu={onNodeContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}

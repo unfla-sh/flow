@@ -131,6 +131,8 @@ export interface WorkflowState {
   duplicateSelected: () => void
   deleteSelected: () => void
   deleteEdge: (id: string) => void
+  /** Re-attach an existing edge to a new source/target (drag of an edge end on the canvas). */
+  reconnectEdge: (id: string, connection: Connection) => void
   simplifyToTwoWayEdge: (edgeId: string) => void
   /** Toggle a single edge between a one-way (end arrow) and two-way (⇄) arrow. */
   toggleEdgeTwoWay: (edgeId: string) => void
@@ -145,6 +147,12 @@ export interface WorkflowState {
 
   newWorkflow: () => void
   loadDoc: (doc: WorkflowDoc, workflowId?: string | null) => void
+  /**
+   * Replace the document in place as an *edit* (AI modification, bulk
+   * rewrite): keeps the workflow identity, marks it dirty and stays inside the
+   * undo history so Ctrl+Z reverts the whole change.
+   */
+  replaceDoc: (doc: WorkflowDoc) => void
   markSaved: (workflowId: string) => void
 }
 
@@ -934,6 +942,28 @@ export const useWorkflowStore = create<WorkflowState>()(
         }))
       },
 
+      reconnectEdge: (id, connection) => {
+        if (!connection.source || !connection.target) return
+        set((state) =>
+          commitFlow(state, activeFlowId(state), (graph) => ({
+            ...graph,
+            edges: graph.edges.map((edge) =>
+              edge.id === id
+                ? {
+                    ...edge,
+                    source: connection.source,
+                    target: connection.target,
+                    sourceHandle: normalizeHandle(connection.sourceHandle),
+                    targetHandle: normalizeHandle(connection.targetHandle),
+                    // A hand-placed route was drawn for the old endpoints.
+                    data: { ...edge.data, route: { kind: 'auto' } },
+                  }
+                : edge,
+            ),
+          })),
+        )
+      },
+
       simplifyToTwoWayEdge: (edgeId) => {
         set((state) => {
           const flowId = activeFlowId(state)
@@ -1273,6 +1303,25 @@ export const useWorkflowStore = create<WorkflowState>()(
           currentWorkflowId: workflowId,
           presentationMode: false,
           sim: IDLE_SIM,
+        })
+      },
+
+      replaceDoc: (doc) => {
+        set((state) => {
+          const next = normalizeCatalogDefinitionIds(structuredClone(doc))
+          // Stay in the current sub-flow if it survived; otherwise return to root.
+          const path = state.activeFlowPath.every((flowId) => next.flows[flowId])
+            ? state.activeFlowPath
+            : [ROOT_FLOW_ID]
+          return {
+            doc: next,
+            docRevision: state.docRevision + 1,
+            activeFlowPath: path,
+            selectedNodeId: null,
+            selectedEdgeId: null,
+            dirty: true,
+            sim: IDLE_SIM,
+          }
         })
       },
 

@@ -73,6 +73,18 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
   const lineWidth = style.lineWidth ?? 1.75
   const arrowSize = style.arrowSize ?? 10
 
+  const setPoint = (index: number, partial: { x?: number; y?: number }) => {
+    const next = points.map((point, i) => (i === index ? { ...point, ...partial } : point))
+    updateEdge(edge.id, { data: { route: { kind: 'manual', points: next } } })
+  }
+
+  const removePoint = (index: number) => {
+    const next = points.filter((_, i) => i !== index)
+    updateEdge(edge.id, {
+      data: { route: next.length ? { kind: 'manual', points: next } : { kind: 'auto' } },
+    })
+  }
+
   const addBendPoint = () => {
     const source = nodeCenter(graph.nodes.find((node) => node.id === edge.source))
     const target = nodeCenter(graph.nodes.find((node) => node.id === edge.target))
@@ -260,7 +272,48 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
             : style.pathType === 'step'
               ? 'Automatic right-angle (step) route'
               : 'Automatic curved route'}
+          <p className="mt-1 text-[10px]">
+            On the canvas: select the edge, then drag the small handle on the line (or
+            double-click the line) to add a bend. Drag a numbered bend to move it (it snaps to
+            straight lines; hold Alt to place freely) and double-click it to remove it. Drag
+            either arrow end onto another node to re-attach it.
+          </p>
         </div>
+        {points.length > 0 && (
+          <div className="space-y-1.5">
+            <Label>Bend points</Label>
+            {points.map((point, index) => (
+              <div key={index} className="grid grid-cols-[auto_1fr_1fr_auto] items-center gap-1.5">
+                <span className="w-4 text-center text-[10px] font-semibold text-muted-foreground">
+                  {index + 1}
+                </span>
+                <Input
+                  type="number"
+                  aria-label={`Bend point ${index + 1} x`}
+                  value={Math.round(point.x)}
+                  onChange={(event) => setPoint(index, { x: Number(event.target.value) || 0 })}
+                  className="h-7 px-2 text-[11px]"
+                />
+                <Input
+                  type="number"
+                  aria-label={`Bend point ${index + 1} y`}
+                  value={Math.round(point.y)}
+                  onChange={(event) => setPoint(index, { y: Number(event.target.value) || 0 })}
+                  className="h-7 px-2 text-[11px]"
+                />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-[11px]"
+                  aria-label={`Remove bend point ${index + 1}`}
+                  onClick={() => removePoint(index)}
+                >
+                  ×
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
         <Button variant="outline" size="sm" className="w-full" onClick={addBendPoint}>
           Add bend point
         </Button>

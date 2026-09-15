@@ -9,6 +9,14 @@ import {
 import { useCallback, useMemo } from 'react'
 
 import { useInternalNode, useReactFlow } from '@xyflow/react'
+import {
+  insertBend,
+  nearestSegmentIndex,
+  orthogonalPoints,
+  roundedPolylinePath,
+  segmentMidpoints,
+  snapPoint,
+} from '@/lib/edgeRoute'
 import { useWorkflowStore } from '@/store/workflowStore'
 import type { EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
 
@@ -42,24 +50,6 @@ const CARDINALITY_LABELS: Record<EdgeCardinality, string> = {
   'zero-one': '0..1',
   many: '1..N',
   'zero-many': '0..N',
-}
-
-function smoothPath(points: XYPosition[]): string {
-  if (points.length < 2) return ''
-  if (points.length === 2) {
-    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`
-  }
-
-  let path = `M ${points[0].x} ${points[0].y}`
-  for (let index = 1; index < points.length - 1; index += 1) {
-    const current = points[index]
-    const next = points[index + 1]
-    const mid = { x: (current.x + next.x) / 2, y: (current.y + next.y) / 2 }
-    path += ` Q ${current.x} ${current.y} ${mid.x} ${mid.y}`
-  }
-  const last = points[points.length - 1]
-  path += ` L ${last.x} ${last.y}`
-  return path
 }
 
 function midpoint(points: XYPosition[]): XYPosition {
@@ -113,6 +103,19 @@ function clamp(value: number | undefined, fallback: number, min: number, max: nu
   return Math.min(max, Math.max(min, value))
 }
 
+/**
+ * Where to show the "drag to add a bend" handle for the raw segment a→b. A
+ * right-angle route draws that segment as an L, so the natural grab point is
+ * its elbow; a straight segment uses its midpoint.
+ */
+function insertHandlePosition(a: XYPosition, b: XYPosition, step: boolean): XYPosition {
+  if (step) {
+    const routed = orthogonalPoints([a, b])
+    if (routed.length === 3) return routed[1]
+  }
+  return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }
+}
+
 export function WorkflowEdge({
   id,
   source,
@@ -147,16 +150,15 @@ export function WorkflowEdge({
   const stroke = data?.style?.stroke ?? EDGE_STROKES[edgeKind]
   const lineWidth = clamp(data?.style?.lineWidth, 1.75, 1, 8)
   const arrowSize = clamp(data?.style?.arrowSize, 10, 6, 28)
+  const isStep = data?.style?.pathType === 'step'
   const route = data?.route
-  const bendPoints = useMemo(
-    () => (route?.kind === 'manual' ? (route.points ?? []) : []),
-    [route],
+  const isManual = route?.kind === 'manual'
+  const bendPoints = useMemo(() => (isManual ? (route?.points ?? []) : []), [isManual, route])
+  // The raw polyline: endpoints plus the user's bend points, in route order.
+  const manualPoints = useMemo(
+    () => [{ x: sourceX, y: sourceY }, ...bendPoints, { x: targetX, y: targetY }],
+    [bendPoints, sourceX, sourceY, targetX, targetY],
   )
-  const manualPoints = [
-    { x: sourceX, y: sourceY },
-    ...bendPoints,
-    { x: targetX, y: targetY },
-  ]
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '')
   const markerEndId = `workflow-arrow-end-${safeId}`
   const markerStartId = `workflow-arrow-start-${safeId}`
@@ -190,30 +192,54 @@ export function WorkflowEdge({
   }
 
   const routeArgs = { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition }
-  const [autoPath, labelX, labelY] = isSelfLoop
+  const [autoPath, autoLabelX, autoLabelY] = isSelfLoop
     ? selfLoopPath(selfBox, sourceX, sourceY)
-    : data?.style?.pathType === 'step'
+    : isStep
       ? getSmoothStepPath(routeArgs)
       : getBezierPath(routeArgs)
-  const manualPath = smoothPath(manualPoints)
-  const path = route?.kind === 'manual' && manualPath ? manualPath : autoPath
-  const manualLabel = midpoint(manualPoints)
+  // A manual route runs straight through every bend point (right-angled when
+  // the edge is a step route), so the handle you drag is where the line goes.
+  const routedPoints = useMemo(
+    () => (isStep ? orthogonalPoints(manualPoints) : manualPoints),
+    [isStep, manualPoints],
+  )
+  const manualPath = isManual && !isSelfLoop ? roundedPolylinePath(routedPoints) : ''
+  const path = manualPath || autoPath
+  const manualLabel = midpoint(segmentMidpoints(routedPoints))
+  const labelX = manualPath ? manualLabel.x : autoLabelX
+  const labelY = manualPath ? manualLabel.y : autoLabelY
   const bidirectionalMidpoint = splitMidpoint(manualPoints)
-  const bidirectionalSourcePath = smoothPath([bidirectionalMidpoint, { x: sourceX, y: sourceY }])
-  const bidirectionalTargetPath = smoothPath([bidirectionalMidpoint, { x: targetX, y: targetY }])
+  const bidirectionalSourcePath = roundedPolylinePath([bidirectionalMidpoint, { x: sourceX, y: sourceY }])
+  const bidirectionalTargetPath = roundedPolylinePath([bidirectionalMidpoint, { x: targetX, y: targetY }])
 
-  const movePoint = useCallback(
-    (index: number, event: React.PointerEvent<HTMLButtonElement>) => {
+  const commitPoints = useCallback(
+    (points: XYPosition[]) => {
+      updateEdge(id, { data: { route: { kind: 'manual', points } } })
+    },
+    [id, updateEdge],
+  )
+
+  /**
+   * Drag bend `index` of `points` until pointer-up. Snaps to the neighbouring
+   * points' x/y lines so straight segments are easy to make; hold Alt to
+   * place it freely.
+   */
+  const dragPoint = useCallback(
+    (points: XYPosition[], index: number, event: React.PointerEvent<HTMLElement>) => {
       event.preventDefault()
       event.stopPropagation()
       const targetEl = event.currentTarget
       targetEl.setPointerCapture(event.pointerId)
+      const working = [...points]
 
       const onMove = (moveEvent: PointerEvent) => {
-        const position = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY })
-        const points = [...bendPoints]
-        points[index] = position
-        updateEdge(id, { data: { route: { kind: 'manual', points } } })
+        const raw = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY })
+        const neighbours = [
+          index === 0 ? { x: sourceX, y: sourceY } : working[index - 1],
+          index === working.length - 1 ? { x: targetX, y: targetY } : working[index + 1],
+        ]
+        working[index] = moveEvent.altKey ? raw : snapPoint(raw, neighbours)
+        commitPoints([...working])
       }
 
       const onUp = () => {
@@ -226,8 +252,49 @@ export function WorkflowEdge({
       targetEl.addEventListener('pointerup', onUp)
       targetEl.addEventListener('pointercancel', onUp)
     },
-    [bendPoints, id, screenToFlowPosition, updateEdge],
+    [commitPoints, screenToFlowPosition, sourceX, sourceY, targetX, targetY],
   )
+
+  /** Grab a segment handle: a new bend appears under the pointer and follows it. */
+  const insertAndDrag = useCallback(
+    (segmentIndex: number, at: XYPosition, event: React.PointerEvent<HTMLElement>) => {
+      const points = insertBend(bendPoints, segmentIndex, at)
+      commitPoints(points)
+      dragPoint(points, segmentIndex, event)
+    },
+    [bendPoints, commitPoints, dragPoint],
+  )
+
+  const removePoint = useCallback(
+    (index: number) => {
+      const points = bendPoints.filter((_, i) => i !== index)
+      if (points.length === 0) updateEdge(id, { data: { route: { kind: 'auto' } } })
+      else commitPoints(points)
+    },
+    [bendPoints, commitPoints, id, updateEdge],
+  )
+
+  /** Double-click anywhere on the line to drop a bend point right there. */
+  const onLineDoubleClick = useCallback(
+    (event: React.MouseEvent<SVGGElement>) => {
+      if (presentationMode || isSelfLoop) return
+      event.stopPropagation()
+      const at = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      commitPoints(insertBend(bendPoints, nearestSegmentIndex(manualPoints, at), at))
+    },
+    [bendPoints, commitPoints, isSelfLoop, manualPoints, presentationMode, screenToFlowPosition],
+  )
+
+  const showHandles = selected && !presentationMode && !isSelfLoop && !bidirectional
+  const insertHandles = useMemo(() => {
+    if (!showHandles) return []
+    if (!isManual) return [{ x: autoLabelX, y: autoLabelY }]
+    const handles: XYPosition[] = []
+    for (let index = 0; index < manualPoints.length - 1; index += 1) {
+      handles.push(insertHandlePosition(manualPoints[index], manualPoints[index + 1], isStep))
+    }
+    return handles
+  }, [autoLabelX, autoLabelY, isManual, isStep, manualPoints, showHandles])
 
   return (
     <>
@@ -291,19 +358,21 @@ export function WorkflowEdge({
           />
         </>
       ) : (
-        <BaseEdge
-          id={id}
-          path={path}
-          label={renderedLabel}
-          labelStyle={LABEL_TEXT_STYLE}
-          labelBgStyle={LABEL_BG_STYLE}
-          labelX={route?.kind === 'manual' ? manualLabel.x : labelX}
-          labelY={route?.kind === 'manual' ? manualLabel.y : labelY}
-          markerStart={showStartArrow ? `url(#${markerStartId})` : undefined}
-          markerEnd={showEndArrow ? `url(#${markerEndId})` : undefined}
-          className={animated ? 'workflow-edge-animated' : undefined}
-          style={staticEdgeStyle}
-        />
+        <g onDoubleClick={onLineDoubleClick}>
+          <BaseEdge
+            id={id}
+            path={path}
+            label={renderedLabel}
+            labelStyle={LABEL_TEXT_STYLE}
+            labelBgStyle={LABEL_BG_STYLE}
+            labelX={labelX}
+            labelY={labelY}
+            markerStart={showStartArrow ? `url(#${markerStartId})` : undefined}
+            markerEnd={showEndArrow ? `url(#${markerEndId})` : undefined}
+            className={animated ? 'workflow-edge-animated' : undefined}
+            style={staticEdgeStyle}
+          />
+        </g>
       )}
       {edgeKind === 'relationship' && (
         <EdgeLabelRenderer>
@@ -321,17 +390,33 @@ export function WorkflowEdge({
           ))}
         </EdgeLabelRenderer>
       )}
-      {selected && !presentationMode && bendPoints.length > 0 && (
+      {showHandles && (
         <EdgeLabelRenderer>
+          {insertHandles.map((point, index) => (
+            <button
+              key={`${id}-insert-${index}`}
+              type="button"
+              aria-label="Drag to add a bend point"
+              title="Drag to add a bend point"
+              className="workflow-bend-insert nodrag nopan absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-move rounded-full border-2 border-primary/70 bg-background/90 shadow"
+              style={{ left: point.x, top: point.y, pointerEvents: 'all' }}
+              onPointerDown={(event) => insertAndDrag(index, point, event)}
+              onDoubleClick={(event) => event.stopPropagation()}
+            />
+          ))}
           {bendPoints.map((point, index) => (
             <button
               key={`${id}-bend-${index}`}
               type="button"
               aria-label={`Move bend point ${index + 1}`}
-              title={`Bend point ${index + 1}`}
-              className="workflow-bend-point nodrag nopan absolute flex size-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-primary bg-background text-[9px] font-bold text-primary shadow-lg ring-2 ring-background"
+              title="Drag to move · Alt to skip snapping · double-click to remove"
+              className="workflow-bend-point nodrag nopan absolute flex size-6 -translate-x-1/2 -translate-y-1/2 cursor-move items-center justify-center rounded-full border-2 border-primary bg-background text-[9px] font-bold text-primary shadow-lg ring-2 ring-background"
               style={{ left: point.x, top: point.y, pointerEvents: 'all' }}
-              onPointerDown={(event) => movePoint(index, event)}
+              onPointerDown={(event) => dragPoint(bendPoints, index, event)}
+              onDoubleClick={(event) => {
+                event.stopPropagation()
+                removePoint(index)
+              }}
             >
               {index + 1}
             </button>

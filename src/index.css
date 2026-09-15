@@ -222,8 +222,24 @@
   z-index: 40;
 }
 
-.workflow-bend-point {
+.workflow-bend-point,
+.workflow-bend-insert {
   z-index: 1000;
+}
+
+.workflow-bend-insert {
+  opacity: 0.55;
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.workflow-bend-insert:hover {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.35);
+}
+
+/* Fatter grab targets for edge ends so re-attaching an arrow is not a pixel hunt. */
+.react-flow__edgeupdater {
+  r: 12;
 }
 
 @keyframes workflow-edge-dash {

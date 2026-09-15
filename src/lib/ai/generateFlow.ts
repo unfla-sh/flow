@@ -8,9 +8,15 @@ import { FLOW_SCHEMA_PROMPT } from './flowSchemaPrompt'
 const USER_PREAMBLE =
   'Build the most appropriate workflow or systems diagram for the following. Respond with ONLY the JSON document.\n\n'
 
+/** System + user halves for a direct API call. */
+export function buildGenerateMessages(description: string): { system: string; user: string } {
+  return { system: FLOW_SCHEMA_PROMPT, user: `${USER_PREAMBLE}${description.trim()}` }
+}
+
 /** The full prompt (schema + request) to paste into any chat assistant. */
 export function buildFullPrompt(description: string): string {
-  return `${FLOW_SCHEMA_PROMPT}\n\n${USER_PREAMBLE}${description.trim()}`
+  const { system, user } = buildGenerateMessages(description)
+  return `${system}\n\n${user}`
 }
 
 /** Parse a model's pasted text response into a validated, laid-out doc. */

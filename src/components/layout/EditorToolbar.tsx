@@ -22,6 +22,7 @@ import {
   Redo2Icon,
   SkipForwardIcon,
   SquareIcon,
+  SparklesIcon,
   SunIcon,
   Trash2Icon,
   Undo2Icon,
@@ -31,7 +32,7 @@ import {
 import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 
 import { ConfirmDialog, type ConfirmRequest } from '@/components/dialogs/ConfirmDialog'
-import { GenerateAiDialog } from '@/components/dialogs/GenerateAiDialog'
+import { GenerateAiDialog, type AiDialogMode } from '@/components/dialogs/GenerateAiDialog'
 import { ImportMermaidDialog } from '@/components/dialogs/ImportMermaidDialog'
 import { OpenWorkflowDialog } from '@/components/dialogs/OpenWorkflowDialog'
 import { ValidationMenu } from '@/components/layout/ValidationMenu'
@@ -153,6 +154,14 @@ export function EditorToolbar({
   const [openOpen, setOpenOpen] = useState(false)
   const [mermaidOpen, setMermaidOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
+  const [aiMode, setAiMode] = useState<AiDialogMode>('generate')
+  // Remount the AI dialog per opening so it starts in the requested mode.
+  const [aiOpenCount, setAiOpenCount] = useState(0)
+  const openAi = useCallback((mode: AiDialogMode) => {
+    setAiMode(mode)
+    setAiOpenCount((count) => count + 1)
+    setAiOpen(true)
+  }, [])
   const [saveAsOpen, setSaveAsOpen] = useState(false)
   const [saveAsName, setSaveAsName] = useState('')
   const [aboutOpen, setAboutOpen] = useState(false)
@@ -284,8 +293,15 @@ export function EditorToolbar({
           >
             Import from Mermaid…
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => guarded('Generate with AI', () => setAiOpen(true))}>
+          <DropdownMenuItem
+            onSelect={() =>
+              guarded('Generate with AI', () => openAi('generate'))
+            }
+          >
             Generate with AI…
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => openAi('modify')}>
+            Modify with AI…
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={exportToJsonFile}>Export JSON</DropdownMenuItem>
@@ -412,6 +428,15 @@ export function EditorToolbar({
         </>
       )}
 
+      <Button
+        variant="ghost"
+        size="sm"
+        disabled={presentationMode}
+        title="Describe a change and let a model edit the diagram"
+        onClick={() => openAi('modify')}
+      >
+        <SparklesIcon /> AI
+      </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="sm" disabled={presentationMode}>
@@ -649,7 +674,7 @@ export function EditorToolbar({
       </Dialog>
 
       <ImportMermaidDialog open={mermaidOpen} onOpenChange={setMermaidOpen} />
-      <GenerateAiDialog open={aiOpen} onOpenChange={setAiOpen} />
+      <GenerateAiDialog key={aiOpenCount} open={aiOpen} onOpenChange={setAiOpen} mode={aiMode} />
 
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </header>
