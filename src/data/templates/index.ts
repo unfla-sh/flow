@@ -1,3 +1,4 @@
+import { referenceTemplates } from './references'
 import { showcaseTemplates } from './showcase'
 import { scenarioKitTemplates } from './scenarioKits'
 import type { WorkflowTemplate } from './types'
@@ -17,6 +18,7 @@ const privateTemplates = Object.values(privateModules).flatMap((m) => m.template
 const bundledTemplates: WorkflowTemplate[] = [
   ...scenarioKitTemplates,
   ...showcaseTemplates,
+  ...referenceTemplates,
   ...privateTemplates,
 ]
 

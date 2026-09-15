@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { diagramKits } from '@/data/diagramKits'
 import { nodeCatalog, normalizeCatalogDefinitionIds } from '@/data/nodeCatalog'
+import { referenceTemplates } from '@/data/templates/references'
 import { showcaseTemplates } from '@/data/templates/showcase'
 import { scenarioKitTemplates } from '@/data/templates/scenarioKits'
 import { serializeDoc } from '@/lib/workflowFile'
@@ -16,7 +17,7 @@ describe('AI diagram generation contract', () => {
   })
 
   it('covers every construct used by the bundled templates', () => {
-    const templates = [...scenarioKitTemplates, ...showcaseTemplates]
+    const templates = [...scenarioKitTemplates, ...showcaseTemplates, ...referenceTemplates]
     for (const template of templates) {
       const doc = normalizeCatalogDefinitionIds(template.doc)
       expect(FLOW_SCHEMA_PROMPT).toContain(`"${doc.settings.diagramKind ?? 'workflow'}"`)

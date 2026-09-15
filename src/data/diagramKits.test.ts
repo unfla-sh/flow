@@ -10,6 +10,7 @@ import {
   normalizeCatalogDefinitionIds,
 } from './nodeCatalog'
 import { edgeDefaultsForKit } from './diagramKits'
+import { referenceTemplates } from './templates/references'
 import { showcaseTemplates } from './templates/showcase'
 import { scenarioKitTemplates } from './templates/scenarioKits'
 
@@ -62,7 +63,7 @@ describe('diagram kits', () => {
   })
 
   it('can recreate every bundled template from registered palette components', () => {
-    const publicTemplates = [...scenarioKitTemplates, ...showcaseTemplates]
+    const publicTemplates = [...scenarioKitTemplates, ...showcaseTemplates, ...referenceTemplates]
     for (const template of publicTemplates) {
       const doc = normalizeCatalogDefinitionIds(template.doc)
       for (const graph of Object.values(doc.flows)) {
