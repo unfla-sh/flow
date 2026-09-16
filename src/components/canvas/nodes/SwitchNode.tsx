@@ -67,7 +67,7 @@ export function SwitchNode({ data, selected }: NodeProps<WorkflowNode>) {
               id={SWITCH_DEFAULT_HANDLE}
               type="source"
               position={branchPosition}
-              className="!size-2.5 !bg-muted-foreground"
+              className="!size-2.5 !bg-sky-500"
               isConnectable={!presentationMode}
             />
           )}
@@ -86,7 +86,7 @@ export function SwitchNode({ data, selected }: NodeProps<WorkflowNode>) {
             type="source"
             position={branchPosition}
             style={{ left: `${((index + 1) / (all.length + 1)) * 100}%` }}
-            className={cn('!size-2.5', handleId === SWITCH_DEFAULT_HANDLE ? '!bg-muted-foreground' : '!bg-sky-500')}
+            className="!size-2.5 !bg-sky-500"
             isConnectable={!presentationMode}
           />
         ))}
