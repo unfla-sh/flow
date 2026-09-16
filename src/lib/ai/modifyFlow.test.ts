@@ -4,7 +4,6 @@ import type { FlowGraph, WorkflowDoc, WorkflowNode } from '@/types/workflow'
 
 import { FLOW_SCHEMA_PROMPT } from './flowSchemaPrompt'
 import { buildFullModifyPrompt, parseModifiedText, placeNewNodes } from './modifyFlow'
-import { extractChatCompletionText } from './providers'
 
 function node(id: string, x: number, y: number, nodeType = 'script'): WorkflowNode {
   return {
@@ -124,22 +123,5 @@ describe('buildFullModifyPrompt', () => {
     expect(prompt).toContain(FLOW_SCHEMA_PROMPT)
     expect(prompt).toContain('"id":"start"')
     expect(prompt).toContain('Add a review step after a')
-  })
-})
-
-describe('extractChatCompletionText', () => {
-  it('reads string and array content and the finish reason', () => {
-    expect(
-      extractChatCompletionText({ choices: [{ message: { content: '{"a":1}' }, finish_reason: 'stop' }] }),
-    ).toEqual({ text: '{"a":1}', finish: 'stop' })
-    expect(
-      extractChatCompletionText({
-        choices: [{ message: { content: [{ type: 'text', text: 'x' }, { type: 'text', text: 'y' }] } }],
-      }),
-    ).toEqual({ text: 'xy', finish: null })
-  })
-
-  it('surfaces a provider error body', () => {
-    expect(() => extractChatCompletionText({ error: { message: 'bad model' } })).toThrow(/bad model/)
   })
 })

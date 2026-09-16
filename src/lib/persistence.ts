@@ -157,7 +157,20 @@ function restoreDraft(): boolean {
 }
 
 /** Call once at startup: load a shared link if present, else the draft, then autosave. */
+/**
+ * A short-lived build let visitors store a provider API key in the browser.
+ * That mode is gone; clear anything it left behind so no key lingers.
+ */
+function purgeLegacyAiKeys() {
+  try {
+    for (const key of ['wf:ai-key', 'wf:ai-settings', 'wf:ai-method']) localStorage.removeItem(key)
+  } catch {
+    // storage blocked: nothing to purge
+  }
+}
+
 export function initPersistence() {
+  purgeLegacyAiKeys()
   if (hasSharedDoc()) {
     // Decoding (gunzip) is async; load the shared doc once it resolves,
     // falling back to the draft if the link is invalid.
