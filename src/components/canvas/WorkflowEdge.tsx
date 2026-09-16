@@ -29,20 +29,24 @@ const EDGE_STROKES: Record<EdgeKind, string> = {
   dependency: '#d97706',
 }
 
-/*
- * PNG export runs the canvas through html-to-image, which deep-clones every
- * <svg> subtree verbatim: no stylesheet travels with it and no computed style
- * is inlined. Anything an SVG child gets from a CSS class is therefore lost in
- * the exported image, which is why label backgrounds came out as black boxes
- * with oversized text. Pinning the paint and the font inline keeps the label
- * identical on canvas and in the export.
+/**
+ * A point a fraction of the way along an SVG path. Sampled on a detached
+ * path element so the label can be placed anywhere on the route, not just
+ * at the renderer's midpoint. Returns null when `along` is unset or the
+ * platform cannot measure paths (e.g. test DOMs).
  */
-const LABEL_BG_STYLE = { fill: '#ffffff' }
-const LABEL_TEXT_STYLE = {
-  fill: '#000000',
-  fontSize: 10,
-  fontFamily:
-    "'Twemoji Country Flags', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'",
+function usePathPoint(d: string, along: number | undefined): XYPosition | null {
+  return useMemo(() => {
+    if (along === undefined || !d) return null
+    try {
+      const el = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+      el.setAttribute('d', d)
+      const point = el.getPointAtLength(el.getTotalLength() * Math.min(1, Math.max(0, along)))
+      return { x: point.x, y: point.y }
+    } catch {
+      return null
+    }
+  }, [d, along])
 }
 
 const CARDINALITY_LABELS: Record<EdgeCardinality, string> = {
@@ -132,6 +136,7 @@ export function WorkflowEdge({
   animated,
 }: EdgeProps<WorkflowEdge>) {
   const updateEdge = useWorkflowStore((state) => state.updateEdge)
+  const setSelectedEdge = useWorkflowStore((state) => state.setSelectedEdge)
   const presentationMode = useWorkflowStore((state) => state.presentationMode)
   const { screenToFlowPosition } = useReactFlow()
   const isSelfLoop = source === target
@@ -212,6 +217,16 @@ export function WorkflowEdge({
   const bidirectionalSourcePath = roundedPolylinePath([bidirectionalMidpoint, { x: sourceX, y: sourceY }])
   const bidirectionalTargetPath = roundedPolylinePath([bidirectionalMidpoint, { x: targetX, y: targetY }])
 
+  // Label anchor: a chosen fraction along the path when set, else the
+  // renderer's midpoint; then the drag offset.
+  const labelPosition = data?.labelPosition
+  const sampled = usePathPoint(bidirectional ? '' : path, labelPosition?.along)
+  const labelAnchor = bidirectional ? bidirectionalMidpoint : (sampled ?? { x: labelX, y: labelY })
+  const labelAt = {
+    x: labelAnchor.x + (labelPosition?.dx ?? 0),
+    y: labelAnchor.y + (labelPosition?.dy ?? 0),
+  }
+
   const commitPoints = useCallback(
     (points: XYPosition[]) => {
       updateEdge(id, { data: { route: { kind: 'manual', points } } })
@@ -272,6 +287,44 @@ export function WorkflowEdge({
       else commitPoints(points)
     },
     [bendPoints, commitPoints, id, updateEdge],
+  )
+
+  /** Drag the label: the offset from its anchor is stored, so it follows the edge when nodes move. */
+  const dragLabel = useCallback(
+    (event: React.PointerEvent<HTMLElement>) => {
+      if (event.button !== 0) return
+      event.preventDefault()
+      event.stopPropagation()
+      const targetEl = event.currentTarget
+      targetEl.setPointerCapture(event.pointerId)
+      const start = screenToFlowPosition({ x: event.clientX, y: event.clientY })
+      const initial = { dx: labelPosition?.dx ?? 0, dy: labelPosition?.dy ?? 0 }
+      let moved = false
+
+      const onMove = (moveEvent: PointerEvent) => {
+        const now = screenToFlowPosition({ x: moveEvent.clientX, y: moveEvent.clientY })
+        moved = true
+        updateEdge(id, {
+          data: {
+            labelPosition: {
+              ...labelPosition,
+              dx: Math.round(initial.dx + now.x - start.x),
+              dy: Math.round(initial.dy + now.y - start.y),
+            },
+          },
+        })
+      }
+      const onUp = () => {
+        targetEl.removeEventListener('pointermove', onMove)
+        targetEl.removeEventListener('pointerup', onUp)
+        targetEl.removeEventListener('pointercancel', onUp)
+        if (!moved) setSelectedEdge(id)
+      }
+      targetEl.addEventListener('pointermove', onMove)
+      targetEl.addEventListener('pointerup', onUp)
+      targetEl.addEventListener('pointercancel', onUp)
+    },
+    [id, labelPosition, screenToFlowPosition, setSelectedEdge, updateEdge],
   )
 
   /** Double-click anywhere on the line to drop a bend point right there. */
@@ -347,11 +400,6 @@ export function WorkflowEdge({
           <BaseEdge
             id={`${id}-target`}
             path={bidirectionalTargetPath}
-            label={renderedLabel}
-            labelStyle={LABEL_TEXT_STYLE}
-            labelBgStyle={LABEL_BG_STYLE}
-            labelX={bidirectionalMidpoint.x}
-            labelY={bidirectionalMidpoint.y}
             markerEnd={`url(#${markerEndId})`}
             className={animated ? 'workflow-edge-animated' : undefined}
             style={staticEdgeStyle}
@@ -362,17 +410,30 @@ export function WorkflowEdge({
           <BaseEdge
             id={id}
             path={path}
-            label={renderedLabel}
-            labelStyle={LABEL_TEXT_STYLE}
-            labelBgStyle={LABEL_BG_STYLE}
-            labelX={labelX}
-            labelY={labelY}
             markerStart={showStartArrow ? `url(#${markerStartId})` : undefined}
             markerEnd={showEndArrow ? `url(#${markerEndId})` : undefined}
             className={animated ? 'workflow-edge-animated' : undefined}
             style={staticEdgeStyle}
           />
         </g>
+      )}
+      {renderedLabel && (
+        <EdgeLabelRenderer>
+          {/*
+           * An HTML label (not BaseEdge's SVG text) so it follows the theme
+           * and can be dragged. html-to-image inlines computed styles for HTML
+           * nodes, so the PNG export keeps it as drawn.
+           */}
+          <div
+            className={`workflow-edge-label nodrag nopan absolute -translate-x-1/2 -translate-y-1/2 whitespace-nowrap rounded-sm border bg-background px-1 py-px text-[10px] leading-tight text-foreground ${selected ? 'cursor-move ring-1 ring-primary/60' : 'cursor-pointer'}`}
+            style={{ left: labelAt.x, top: labelAt.y, pointerEvents: presentationMode ? 'none' : 'all' }}
+            title={presentationMode ? undefined : 'Drag to move the label'}
+            onPointerDown={presentationMode ? undefined : dragLabel}
+            onDoubleClick={(event) => event.stopPropagation()}
+          >
+            {renderedLabel}
+          </div>
+        </EdgeLabelRenderer>
       )}
       {edgeKind === 'relationship' && (
         <EdgeLabelRenderer>

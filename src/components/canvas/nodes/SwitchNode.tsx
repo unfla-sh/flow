@@ -48,32 +48,48 @@ export function SwitchNode({ data, selected }: NodeProps<WorkflowNode>) {
               <span className="text-muted-foreground">when </span>
               <span className="font-mono">{branch.when || '…'}</span>
             </span>
-            <Handle
-              id={branch.id}
-              type="source"
-              position={branchPosition}
-              style={
-                direction === 'tb'
-                  ? { left: `${30 + indexOffset(cases, branch.id)}%` }
-                  : undefined
-              }
-              className="!size-2.5 !bg-sky-500"
-              isConnectable={!presentationMode}
-            />
+            {/* Left-to-right: each branch leaves from its own row's right edge. */}
+            {direction !== 'tb' && (
+              <Handle
+                id={branch.id}
+                type="source"
+                position={branchPosition}
+                className="!size-2.5 !bg-sky-500"
+                isConnectable={!presentationMode}
+              />
+            )}
           </div>
         ))}
         <div className="relative flex items-center px-3 py-1">
           <span className="text-[10px] italic text-muted-foreground">default</span>
-          <Handle
-            id={SWITCH_DEFAULT_HANDLE}
-            type="source"
-            position={branchPosition}
-            style={direction === 'tb' ? { left: '85%' } : undefined}
-            className="!size-2.5 !bg-muted-foreground"
-            isConnectable={!presentationMode}
-          />
+          {direction !== 'tb' && (
+            <Handle
+              id={SWITCH_DEFAULT_HANDLE}
+              type="source"
+              position={branchPosition}
+              className="!size-2.5 !bg-muted-foreground"
+              isConnectable={!presentationMode}
+            />
+          )}
         </div>
       </div>
+      {/*
+       * Top-to-bottom: the branches leave from the node's bottom edge, spread
+       * evenly left-to-right in case order with default last. They must hang
+       * off the outer box, not their rows, or they float inside the body.
+       */}
+      {direction === 'tb' &&
+        [...cases.map((branch) => branch.id), SWITCH_DEFAULT_HANDLE].map((handleId, index, all) => (
+          <Handle
+            key={handleId}
+            id={handleId}
+            type="source"
+            position={branchPosition}
+            style={{ left: `${((index + 1) / (all.length + 1)) * 100}%` }}
+            className={cn('!size-2.5', handleId === SWITCH_DEFAULT_HANDLE ? '!bg-muted-foreground' : '!bg-sky-500')}
+            isConnectable={!presentationMode}
+          />
+        ))}
       <Handle
         id={TARGET_HANDLE_ID}
         type="target"
@@ -83,9 +99,4 @@ export function SwitchNode({ data, selected }: NodeProps<WorkflowNode>) {
       />
     </div>
   )
-}
-
-function indexOffset(cases: { id: string }[], id: string): number {
-  const index = Math.max(0, cases.findIndex((branch) => branch.id === id))
-  return Math.min(45, index * 15)
 }

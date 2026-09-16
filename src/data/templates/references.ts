@@ -193,7 +193,7 @@ const commerceAgent: WorkflowDoc = {
 
         { id: 'e-r1', source: 'dispatch', target: 'backend', data: ARROW },
         { id: 'e-r2', source: 'backend', target: 'sanitize', data: ARROW },
-        { id: 'e-r-loop', source: 'sanitize', sourceHandle: 'left', target: 'model', targetHandle: 'left', label: 'back into messages', data: LOOP_BACK },
+        { id: 'e-r-loop', source: 'sanitize', sourceHandle: 'left', target: 'model', targetHandle: 'left', label: 'back into messages', data: { ...LOOP_BACK, labelPosition: { along: 0.12 } } },
 
         { id: 'e-w1', source: 'validate-w', target: 'caps', data: ARROW },
         { id: 'e-w2', source: 'caps', target: 'serialize', data: ARROW },
@@ -205,7 +205,7 @@ const commerceAgent: WorkflowDoc = {
 
         { id: 'e-p1', source: 'validate-p', target: 'fill', data: ARROW },
         { id: 'e-p2', source: 'fill', target: 'stream', data: ARROW },
-        { id: 'e-p-loop', source: 'stream', sourceHandle: 'right', target: 'model', targetHandle: 'right', label: 'back into messages', data: LOOP_BACK },
+        { id: 'e-p-loop', source: 'stream', sourceHandle: 'right', target: 'model', targetHandle: 'right', label: 'back into messages', data: { ...LOOP_BACK, labelPosition: { along: 0.12 } } },
 
         { id: 'e-f1', source: 'turn-ends', target: 'memory', data: ARROW },
         { id: 'e-f2', source: 'memory', target: 'facts', data: ARROW },
@@ -268,11 +268,11 @@ const codeboardingPipeline: WorkflowDoc = {
       ],
       edges: [
         { id: 'e-cli', source: 'cli', target: 'pipeline', data: ARROW },
-        { id: 'e-health', source: 'pipeline', target: 'health', label: 'validate', data: STEP },
+        { id: 'e-health', source: 'pipeline', target: 'health', label: 'validate', data: { ...STEP, labelPosition: { along: 0.82 } } },
         // Two-way: the pipeline asks, the engine/agents answer.
-        { id: 'e-static', source: 'pipeline', target: 'static', label: 'analyse ⇄ symbols & relations', data: TWO_WAY },
-        { id: 'e-agents', source: 'pipeline', target: 'agents', label: 'ask ⇄ component analysis', data: TWO_WAY },
-        { id: 'e-entry', source: 'pipeline', target: 'entrypoints', label: 'register tools', data: STEP },
+        { id: 'e-static', source: 'pipeline', target: 'static', label: 'analyse ⇄ symbols & relations', data: { ...TWO_WAY, labelPosition: { along: 0.82 } } },
+        { id: 'e-agents', source: 'pipeline', target: 'agents', label: 'ask ⇄ component analysis', data: { ...TWO_WAY, labelPosition: { along: 0.82 } } },
+        { id: 'e-entry', source: 'pipeline', target: 'entrypoints', label: 'register tools', data: { ...STEP, labelPosition: { along: 0.82 } } },
         // Outer-column targets attach from the sides so the routes hug the diagram edge.
         { id: 'e-mon', source: 'pipeline', sourceHandle: 'left', target: 'monitoring', targetHandle: 'left', label: 'emit telemetry', data: STEP },
         { id: 'e-render', source: 'pipeline', sourceHandle: 'right', target: 'renderers', targetHandle: 'right', label: 'render', data: STEP },

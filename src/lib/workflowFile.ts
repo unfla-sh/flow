@@ -96,6 +96,13 @@ const edgeSchema = z.looseObject({
   data: z
     .looseObject({
       condition: z.string().optional(),
+      labelPosition: z
+        .object({
+          along: z.number().min(0).max(1).optional(),
+          dx: z.number().optional(),
+          dy: z.number().optional(),
+        })
+        .optional(),
       route: z
         .object({
           kind: z.enum(['auto', 'manual']),

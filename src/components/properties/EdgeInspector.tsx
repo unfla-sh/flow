@@ -111,6 +111,49 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
             placeholder="e.g. submitted"
           />
         </div>
+        {typeof edge.label === 'string' && edge.label && (
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="edge-label-along">Label position along the arrow</Label>
+              <span className="text-[10px] text-muted-foreground">
+                {Math.round((edge.data?.labelPosition?.along ?? 0.5) * 100)}%
+              </span>
+            </div>
+            <input
+              id="edge-label-along"
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round((edge.data?.labelPosition?.along ?? 0.5) * 100)}
+              onChange={(event) =>
+                updateEdge(edge.id, {
+                  data: {
+                    labelPosition: {
+                      ...edge.data?.labelPosition,
+                      along: Number(event.target.value) / 100,
+                    },
+                  },
+                })
+              }
+              className="w-full accent-primary"
+            />
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] text-muted-foreground">
+                Or drag the label on the canvas to nudge it.
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-[10px]"
+                disabled={!edge.data?.labelPosition}
+                onClick={() => updateEdge(edge.id, { data: { labelPosition: undefined } })}
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="space-y-1.5">
           <Label>Connection type</Label>
           <Select

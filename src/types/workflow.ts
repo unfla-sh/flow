@@ -187,8 +187,20 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   subFlowId?: string
 }
 
+/**
+ * Where the edge's label sits. `along` is a fraction of the path length
+ * (0 = source, 1 = target; unset = the renderer's default midpoint) and
+ * dx/dy nudge it from that anchor in flow units (set by dragging the label).
+ */
+export interface EdgeLabelPosition {
+  along?: number
+  dx?: number
+  dy?: number
+}
+
 export interface WorkflowEdgeData extends Record<string, unknown> {
   kind?: EdgeKind
+  labelPosition?: EdgeLabelPosition
   condition?: string
   protocol?: string
   sourceCardinality?: EdgeCardinality
