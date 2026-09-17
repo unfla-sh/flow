@@ -24,6 +24,9 @@ export type DiagramKind =
   | 'database'
   | 'infrastructure'
   | 'image-generation'
+  | 'state'
+  | 'planning'
+  | 'uml'
   | 'general'
 
 export type EdgeKind =
@@ -33,6 +36,8 @@ export type EdgeKind =
   | 'network'
   | 'data'
   | 'dependency'
+  | 'transition'
+  | 'association'
 
 export type EdgeCardinality = 'one' | 'zero-one' | 'many' | 'zero-many'
 
@@ -50,6 +55,15 @@ export interface RecordField {
   dataType: string
   key?: RecordFieldKey
   nullable?: boolean
+  /** Physical schema detail: the column is covered by an index. */
+  indexed?: boolean
+}
+
+/** A method/operation row on a UML class or interface card. */
+export interface NodeOperation {
+  id: string
+  /** Free-form signature, e.g. "+ total(): Money" or "- validate(order): bool". */
+  signature: string
 }
 
 export type FieldType =
@@ -152,10 +166,17 @@ export interface EdgeRoute {
   points?: { x: number; y: number }[]
 }
 
+/** Marker drawn at an arrow end. UML uses open triangles and diamonds. */
+export type ArrowShape = 'triangle' | 'open-triangle' | 'diamond' | 'open-diamond' | 'circle'
+
 export interface EdgeStyle {
   stroke?: string
   arrow?: boolean
   arrowStart?: boolean
+  /** Shape of the end marker (default triangle). */
+  arrowShape?: ArrowShape
+  /** Shape of the start marker (default triangle). */
+  arrowStartShape?: ArrowShape
   bidirectional?: boolean
   lineWidth?: number
   arrowSize?: number
@@ -181,6 +202,8 @@ export interface WorkflowNodeData extends Record<string, unknown> {
   attributes?: NodeAttribute[]
   /** Rows and connection points rendered by database/schema record nodes. */
   fields?: RecordField[]
+  /** Operations section on UML class/interface cards (record renderer). */
+  operations?: NodeOperation[]
   simulatedOutput?: unknown
   scriptPath?: string
   scriptSnippet?: string

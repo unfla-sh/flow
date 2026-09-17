@@ -15,6 +15,7 @@ import { newId } from '@/lib/ids'
 import { useWorkflowStore } from '@/store/workflowStore'
 import type {
   NodeAttribute,
+  NodeOperation,
   RecordField,
   RecordFieldKey,
   WorkflowNode,
@@ -147,9 +148,13 @@ const KEY_OPTIONS: { value: RecordFieldKey; label: string }[] = [
 export function RecordEditor({ node }: { node: WorkflowNode }) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData)
   const fields = node.data.fields ?? []
+  const operations = node.data.operations ?? []
   const update = (next: RecordField[]) => updateNodeData(node.id, { fields: next })
   const setField = (id: string, partial: Partial<RecordField>) =>
     update(fields.map((field) => (field.id === id ? { ...field, ...partial } : field)))
+  const updateOperations = (next: NodeOperation[]) =>
+    updateNodeData(node.id, { operations: next })
+  const isUml = /class|interface|enum/i.test(String(node.data.params.recordKind ?? ''))
 
   return (
     <div className="space-y-4">
@@ -230,6 +235,56 @@ export function RecordEditor({ node }: { node: WorkflowNode }) {
                 />
               </div>
             </div>
+            {!isUml && (
+              <div className="flex items-center justify-end gap-2">
+                <Label htmlFor={`${field.id}-indexed`}>Indexed</Label>
+                <Switch
+                  id={`${field.id}-indexed`}
+                  checked={field.indexed ?? false}
+                  onCheckedChange={(indexed) => setField(field.id, { indexed })}
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <Label>Operations {!isUml && <span className="text-muted-foreground">(UML)</span>}</Label>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label="Add operation"
+            onClick={() =>
+              updateOperations([...operations, { id: newId(), signature: '+ operation(): void' }])
+            }
+          >
+            <PlusIcon />
+          </Button>
+        </div>
+        {operations.map((operation, index) => (
+          <div key={operation.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-1.5">
+            <Input
+              aria-label={`Operation ${index + 1}`}
+              value={operation.signature}
+              placeholder="+ name(arg: Type): Return"
+              className="font-mono"
+              onChange={(event) =>
+                updateOperations(
+                  operations.map((item) =>
+                    item.id === operation.id ? { ...item, signature: event.target.value } : item,
+                  ),
+                )
+              }
+            />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={`Remove operation ${index + 1}`}
+              onClick={() => updateOperations(operations.filter((item) => item.id !== operation.id))}
+            >
+              <Trash2Icon />
+            </Button>
           </div>
         ))}
       </div>

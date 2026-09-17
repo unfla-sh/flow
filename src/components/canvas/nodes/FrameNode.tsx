@@ -27,6 +27,11 @@ export function FrameNode({ data, selected }: NodeProps<WorkflowNode>) {
       <span className="absolute top-2 left-3 flex items-center gap-1.5 rounded bg-background/70 px-1 text-xs font-bold text-muted-foreground">
         <NodeIcon name={data.icon} fallback={Frame} className="size-3.5" />
         {data.label}
+        {typeof data.params.caption === 'string' && data.params.caption && (
+          <span className="ml-1 rounded bg-muted px-1 font-mono text-[9px] font-medium">
+            {data.params.caption}
+          </span>
+        )}
       </span>
     </div>
   )

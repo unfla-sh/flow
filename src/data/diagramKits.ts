@@ -40,6 +40,21 @@ export const diagramKits: DiagramKit[] = [
     description: 'Prompts, models, samplers, image processing, and outputs.',
   },
   {
+    id: 'state',
+    label: 'State machine',
+    description: 'States, transitions with guards, choice points, and composite states.',
+  },
+  {
+    id: 'planning',
+    label: 'Planning',
+    description: 'Kanban columns with WIP limits, work items, story maps, and release slices.',
+  },
+  {
+    id: 'uml',
+    label: 'UML class',
+    description: 'Classes, interfaces, enums with attributes and operations; inheritance and composition.',
+  },
+  {
     id: 'general',
     label: 'General diagram',
     description: 'Mixed cards, resources, records, annotations, and connections.',
@@ -80,6 +95,15 @@ export function edgeDefaultsForKit(kind: DiagramKind): KitEdgeDefaults {
   }
   if (kind === 'image-generation') {
     return { kind: 'data', style: { arrow: true } }
+  }
+  if (kind === 'state') {
+    return { kind: 'transition', style: { arrow: true } }
+  }
+  if (kind === 'planning') {
+    return { kind: 'dependency', style: { arrow: true, pathType: 'step', lineStyle: 'dashed' } }
+  }
+  if (kind === 'uml') {
+    return { kind: 'association', style: { arrow: false, pathType: 'step' } }
   }
   return { kind: 'flow', style: { arrow: true } }
 }

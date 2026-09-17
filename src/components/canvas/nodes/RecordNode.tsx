@@ -19,6 +19,9 @@ export function RecordNode({ data, selected }: NodeProps<WorkflowNode>) {
   const recordKind = String(data.params.recordKind ?? 'Table')
   const namespace = String(data.params.namespace ?? '')
   const fields = data.fields ?? []
+  const operations = data.operations ?? []
+  // UML cards have no key column; database cards do.
+  const isUml = /class|interface|enum/i.test(recordKind)
 
   return (
     <div
@@ -42,7 +45,7 @@ export function RecordNode({ data, selected }: NodeProps<WorkflowNode>) {
           </div>
         </div>
       </div>
-      {fields.length === 0 ? (
+      {fields.length === 0 && operations.length === 0 ? (
         <div className="px-3 py-3 text-[10px] text-muted-foreground">Add fields in the Behavior tab</div>
       ) : (
         <div>
@@ -63,11 +66,20 @@ export function RecordNode({ data, selected }: NodeProps<WorkflowNode>) {
                   className="!size-2 !border-background !bg-muted-foreground"
                   isConnectable={!presentationMode}
                 />
-                <span className="flex w-6 shrink-0 items-center justify-center text-[8px] font-bold text-amber-700 dark:text-amber-300">
-                  {key ? KEY_LABELS[key] : field.nullable ? '?' : ''}
-                </span>
+                {!isUml && (
+                  <span className="flex w-6 shrink-0 items-center justify-center text-[8px] font-bold text-amber-700 dark:text-amber-300">
+                    {key ? KEY_LABELS[key] : field.nullable ? '?' : ''}
+                  </span>
+                )}
                 <span className="min-w-0 flex-1 truncate font-semibold">{field.name || 'unnamed'}</span>
-                <span className="max-w-24 shrink-0 truncate text-muted-foreground">{field.dataType || 'unknown'}</span>
+                <span className="max-w-24 shrink-0 truncate text-muted-foreground">
+                  {isUml && field.dataType ? `: ${field.dataType}` : field.dataType || (isUml ? '' : 'unknown')}
+                </span>
+                {field.indexed && (
+                  <span className="shrink-0 rounded bg-sky-100 px-1 text-[7px] font-bold text-sky-700 dark:bg-sky-400/15 dark:text-sky-300">
+                    IDX
+                  </span>
+                )}
                 {key === 'primary' && <KeyRound className="size-3 shrink-0 text-amber-600" />}
                 <Handle
                   id={`field:${field.id}:right`}
@@ -79,6 +91,21 @@ export function RecordNode({ data, selected }: NodeProps<WorkflowNode>) {
               </div>
             )
           })}
+          {operations.length > 0 && (
+            <div className={cn(fields.length > 0 && 'border-t-2 border-border')}>
+              {operations.map((operation, index) => (
+                <div
+                  key={operation.id}
+                  className={cn(
+                    'flex h-7 items-center px-3 font-mono text-[10px]',
+                    index > 0 && 'border-t border-border/60',
+                  )}
+                >
+                  <span className="min-w-0 flex-1 truncate">{operation.signature || 'operation()'}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
       <MidHandles connectable={!presentationMode} />

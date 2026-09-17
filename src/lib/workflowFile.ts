@@ -33,6 +33,12 @@ const recordFieldSchema = z.object({
   dataType: z.string(),
   key: z.enum(['none', 'primary', 'foreign', 'unique']).optional(),
   nullable: z.boolean().optional(),
+  indexed: z.boolean().optional(),
+})
+
+const nodeOperationSchema = z.object({
+  id: z.string(),
+  signature: z.string(),
 })
 
 const nodeDataSchema = z.looseObject({
@@ -72,6 +78,7 @@ const nodeDataSchema = z.looseObject({
   cases: z.array(switchCaseSchema).optional(),
   attributes: z.array(nodeAttributeSchema).optional(),
   fields: z.array(recordFieldSchema).optional(),
+  operations: z.array(nodeOperationSchema).optional(),
   simulatedOutput: z.unknown().optional(),
   scriptPath: z.string().optional(),
   scriptSnippet: z.string().optional(),
@@ -114,6 +121,8 @@ const edgeSchema = z.looseObject({
           stroke: z.string().optional(),
           arrow: z.boolean().optional(),
           arrowStart: z.boolean().optional(),
+          arrowShape: z.enum(['triangle', 'open-triangle', 'diamond', 'open-diamond', 'circle']).optional(),
+          arrowStartShape: z.enum(['triangle', 'open-triangle', 'diamond', 'open-diamond', 'circle']).optional(),
           bidirectional: z.boolean().optional(),
           lineWidth: z.number().optional(),
           arrowSize: z.number().optional(),
@@ -122,7 +131,7 @@ const edgeSchema = z.looseObject({
         })
         .optional(),
       kind: z
-        .enum(['flow', 'reporting', 'relationship', 'network', 'data', 'dependency'])
+        .enum(['flow', 'reporting', 'relationship', 'network', 'data', 'dependency', 'transition', 'association'])
         .optional(),
       protocol: z.string().optional(),
       sourceCardinality: z.enum(['one', 'zero-one', 'many', 'zero-many']).optional(),
@@ -151,6 +160,9 @@ export const workflowDocSchema = z
           'database',
           'infrastructure',
           'image-generation',
+          'state',
+          'planning',
+          'uml',
           'general',
         ])
         .optional(),

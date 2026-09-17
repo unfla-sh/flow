@@ -18,7 +18,7 @@ import {
   snapPoint,
 } from '@/lib/edgeRoute'
 import { useWorkflowStore } from '@/store/workflowStore'
-import type { EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
+import type { ArrowShape, EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
 
 const EDGE_STROKES: Record<EdgeKind, string> = {
   flow: '#64748b',
@@ -27,6 +27,44 @@ const EDGE_STROKES: Record<EdgeKind, string> = {
   network: '#0284c7',
   data: '#7c3aed',
   dependency: '#d97706',
+  transition: '#7c3aed',
+  association: '#475569',
+}
+
+/**
+ * Marker geometry for one arrow end, in a size×size box. `apexAtStart` flips
+ * the shape so a start marker points back at the source. Open shapes are
+ * stroked and filled with the canvas background so the line stops at them.
+ */
+function markerShape(shape: ArrowShape, size: number, apexAtStart: boolean, stroke: string) {
+  const mid = size / 2
+  const flip = (x: number) => (apexAtStart ? size - x : x)
+  const open = shape === 'open-triangle' || shape === 'open-diamond'
+  const paint = open
+    ? { fill: 'var(--background, #ffffff)', stroke, strokeWidth: 1.25 }
+    : { fill: stroke }
+  switch (shape) {
+    case 'diamond':
+    case 'open-diamond':
+      return {
+        d: `M ${flip(0)} ${mid} L ${flip(mid)} 1 L ${flip(size)} ${mid} L ${flip(mid)} ${size - 1} z`,
+        paint,
+        // The diamond's far tip touches the node; its near tip meets the line.
+        refX: apexAtStart ? size * 0.05 : size * 0.95,
+      }
+    case 'circle':
+      return {
+        d: `M ${mid} 1 A ${mid - 1} ${mid - 1} 0 1 0 ${mid} ${size - 1} A ${mid - 1} ${mid - 1} 0 1 0 ${mid} 1 z`,
+        paint,
+        refX: apexAtStart ? size * 0.18 : size * 0.82,
+      }
+    default:
+      return {
+        d: `M ${flip(0)} 0 L ${flip(size)} ${mid} L ${flip(0)} ${size} z`,
+        paint,
+        refX: apexAtStart ? size * 0.18 : size * 0.82,
+      }
+  }
 }
 
 /**
@@ -170,6 +208,8 @@ export function WorkflowEdge({
   const bidirectional = data?.style?.bidirectional === true
   const showEndArrow = !bidirectional && data?.style?.arrow === true
   const showStartArrow = !bidirectional && data?.style?.arrowStart === true
+  const endMarker = markerShape(data?.style?.arrowShape ?? 'triangle', arrowSize, false, stroke)
+  const startMarker = markerShape(data?.style?.arrowStartShape ?? 'triangle', arrowSize, true, stroke)
   const strokeDasharray =
     data?.style?.lineStyle === 'dotted'
       ? '2 5'
@@ -358,15 +398,12 @@ export function WorkflowEdge({
               id={markerEndId}
               markerWidth={arrowSize}
               markerHeight={arrowSize}
-              refX={arrowSize * 0.82}
+              refX={endMarker.refX}
               refY={arrowSize / 2}
               orient="auto"
               markerUnits="userSpaceOnUse"
             >
-              <path
-                d={`M 0 0 L ${arrowSize} ${arrowSize / 2} L 0 ${arrowSize} z`}
-                fill={stroke}
-              />
+              <path d={endMarker.d} {...endMarker.paint} />
             </marker>
           )}
           {(showStartArrow || bidirectional) && (
@@ -374,16 +411,13 @@ export function WorkflowEdge({
               id={markerStartId}
               markerWidth={arrowSize}
               markerHeight={arrowSize}
-              refX={arrowSize * 0.18}
+              refX={startMarker.refX}
               refY={arrowSize / 2}
               orient="auto"
               markerUnits="userSpaceOnUse"
             >
               {/* Apex at x=0 so, oriented along the path, it points back at the source. */}
-              <path
-                d={`M ${arrowSize} 0 L 0 ${arrowSize / 2} L ${arrowSize} ${arrowSize} z`}
-                fill={stroke}
-              />
+              <path d={startMarker.d} {...startMarker.paint} />
             </marker>
           )}
         </defs>

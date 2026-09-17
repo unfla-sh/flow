@@ -61,7 +61,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { templates } from '@/data/templates'
+import { templateCategories } from '@/data/templates'
 import { diagramKindOf } from '@/data/diagramKits'
 import type { FlowDirection } from '@/types/workflow'
 import {
@@ -259,13 +259,21 @@ export function EditorToolbar({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>New from template</DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-              {templates.map((template) => (
-                <DropdownMenuItem
-                  key={template.id}
-                  onSelect={() => guarded(`Load “${template.name}”`, () => loadTemplate(template))}
-                >
-                  {template.name}
-                </DropdownMenuItem>
+              {templateCategories.map((group) => (
+                <DropdownMenuSub key={group.category}>
+                  <DropdownMenuSubTrigger>{group.category}</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="max-h-[70vh] overflow-y-auto">
+                    {group.templates.map((template) => (
+                      <DropdownMenuItem
+                        key={template.id}
+                        title={template.description}
+                        onSelect={() => guarded(`Load “${template.name}”`, () => loadTemplate(template))}
+                      >
+                        {template.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
@@ -386,7 +394,7 @@ export function EditorToolbar({
       <ValidationMenu />
       <Separator orientation="vertical" className="!h-5" />
 
-      {diagramKind === 'workflow' && (
+      {(diagramKind === 'workflow' || diagramKind === 'state') && (
         <>
           {sim.status !== 'idle' && (
             <Badge variant="secondary" className="shrink-0 gap-1 tabular-nums">

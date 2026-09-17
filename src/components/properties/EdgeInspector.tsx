@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useActiveFlow, useWorkflowStore } from '@/store/workflowStore'
-import type { EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
+import type { ArrowShape, EdgeCardinality, EdgeKind, WorkflowEdge } from '@/types/workflow'
 
 const SIDES = ['top', 'right', 'bottom', 'left'] as const
 const AUTO = '__auto__'
@@ -22,7 +22,41 @@ const EDGE_KINDS: { value: EdgeKind; label: string }[] = [
   { value: 'network', label: 'Network connection' },
   { value: 'data', label: 'Data transfer' },
   { value: 'dependency', label: 'Dependency' },
+  { value: 'transition', label: 'State transition' },
+  { value: 'association', label: 'UML association' },
 ]
+const ARROW_SHAPES: { value: ArrowShape; label: string }[] = [
+  { value: 'triangle', label: 'Filled arrow' },
+  { value: 'open-triangle', label: 'Open triangle (inheritance)' },
+  { value: 'diamond', label: 'Filled diamond (composition)' },
+  { value: 'open-diamond', label: 'Open diamond (aggregation)' },
+  { value: 'circle', label: 'Circle' },
+]
+
+function ArrowShapeSelect({
+  id,
+  value,
+  onChange,
+}: {
+  id: string
+  value: ArrowShape
+  onChange: (shape: ArrowShape) => void
+}) {
+  return (
+    <Select value={value} onValueChange={(next) => onChange(next as ArrowShape)}>
+      <SelectTrigger id={id} aria-label="Arrow shape">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {ARROW_SHAPES.map((item) => (
+          <SelectItem key={item.value} value={item.value}>
+            {item.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
 const CARDINALITIES: { value: EdgeCardinality; label: string }[] = [
   { value: 'one', label: 'Exactly one' },
   { value: 'zero-one', label: 'Zero or one' },
@@ -445,6 +479,15 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
             }
           />
         </div>
+        {style.arrowStart === true && !style.bidirectional && (
+          <ArrowShapeSelect
+            id="edge-arrow-start-shape"
+            value={style.arrowStartShape ?? 'triangle'}
+            onChange={(arrowStartShape) =>
+              updateEdge(edge.id, { data: { style: { ...style, arrowStartShape } } })
+            }
+          />
+        )}
         <div className="flex items-center justify-between">
           <Label htmlFor="edge-arrow">End arrow</Label>
           <Switch
@@ -458,6 +501,15 @@ export function EdgeInspector({ edge }: { edge: WorkflowEdge }) {
             }
           />
         </div>
+        {style.arrow === true && !style.bidirectional && (
+          <ArrowShapeSelect
+            id="edge-arrow-shape"
+            value={style.arrowShape ?? 'triangle'}
+            onChange={(arrowShape) =>
+              updateEdge(edge.id, { data: { style: { ...style, arrowShape } } })
+            }
+          />
+        )}
         <Button
           variant="outline"
           size="sm"

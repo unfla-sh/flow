@@ -1,6 +1,23 @@
 import {
+  ArrowRightLeft,
+  Blocks,
+  Boxes,
+  Braces,
   Building2,
   CircleCheck,
+  CircleDot,
+  Cloud,
+  Columns3,
+  Component,
+  Container,
+  HardDrive,
+  Kanban,
+  ListChecks,
+  MessageSquare,
+  Milestone,
+  MonitorSmartphone,
+  Rocket,
+  SquareStack,
   CirclePlay,
   ClipboardList,
   Database,
@@ -48,6 +65,10 @@ export type NodeCategory =
   | 'Database'
   | 'Infrastructure'
   | 'Image Generation'
+  | 'State'
+  | 'Planning'
+  | 'UML'
+  | 'General'
   | 'Annotate'
 
 export interface NodeCatalogEntry {
@@ -72,6 +93,10 @@ export const NODE_CATEGORIES: NodeCategory[] = [
   'Database',
   'Infrastructure',
   'Image Generation',
+  'State',
+  'Planning',
+  'UML',
+  'General',
   'Annotate',
 ]
 
@@ -632,6 +657,337 @@ export const nodeCatalog: NodeCatalogEntry[] = [
       params: { url: '', kind: 'image' },
     }),
   },
+
+  // ── General building blocks (architecture, trees, nesting, layers, dependency graphs) ──
+  {
+    id: 'general.component',
+    nodeType: 'resource',
+    label: 'Component',
+    description: 'Plain box for a component, module, service, or any labelled thing.',
+    category: 'General',
+    kits: ['general', 'workflow', 'infrastructure', 'state', 'planning', 'uml'],
+    icon: Component,
+    defaultData: () => ({
+      label: 'Component',
+      nodeType: 'resource',
+      params: {},
+      attributes: [],
+      icon: 'box',
+    }),
+  },
+  {
+    id: 'general.layer',
+    nodeType: 'frame',
+    label: 'Layer band',
+    description: 'Wide solid band for a layer stack or tier; put components inside it.',
+    category: 'General',
+    kits: ['general', 'infrastructure', 'workflow'],
+    icon: SquareStack,
+    defaultData: () => ({
+      label: 'Layer',
+      nodeType: 'frame',
+      params: { caption: '' },
+      icon: 'layers',
+      style: { borderStyle: 'solid', fillColor: '#f8fafc', borderColor: '#cbd5e1' },
+    }),
+  },
+  {
+    id: 'process.lane',
+    nodeType: 'frame',
+    label: 'Swimlane',
+    description: 'A lane for one actor or role in a cross-functional process.',
+    category: 'Core',
+    kits: ['workflow', 'general'],
+    icon: Columns3,
+    defaultData: () => ({
+      label: 'Lane',
+      nodeType: 'frame',
+      params: { caption: '' },
+      icon: 'user',
+      style: { borderStyle: 'solid', fillColor: '#fafafa', borderColor: '#d4d4d8' },
+    }),
+  },
+
+  // ── State machine ──
+  {
+    id: 'state.state',
+    nodeType: 'resource',
+    label: 'State',
+    description: 'A state with optional entry/exit actions; transitions carry guards.',
+    category: 'State',
+    kits: ['state', 'general'],
+    icon: CircleDot,
+    defaultData: () => ({
+      label: 'State',
+      nodeType: 'resource',
+      params: { resourceType: 'State' },
+      attributes: [
+        { id: newId(), label: 'entry', value: '' },
+        { id: newId(), label: 'exit', value: '' },
+      ],
+      icon: 'play',
+      style: { iconBg: '#ede9fe', borderColor: '#8b5cf6' },
+    }),
+  },
+  {
+    id: 'state.composite',
+    nodeType: 'frame',
+    label: 'Composite state',
+    description: 'A state that contains sub-states; resize it around them.',
+    category: 'State',
+    kits: ['state', 'general'],
+    icon: Boxes,
+    defaultData: () => ({
+      label: 'Composite state',
+      nodeType: 'frame',
+      params: { caption: '' },
+      icon: 'layers',
+      style: { borderStyle: 'solid', fillColor: '#f5f3ff', borderColor: '#a78bfa' },
+    }),
+  },
+
+  // ── Planning: kanban and story maps ──
+  {
+    id: 'plan.column',
+    nodeType: 'frame',
+    label: 'Kanban column',
+    description: 'A work state (To do, Doing, Done) with an optional WIP limit.',
+    category: 'Planning',
+    kits: ['planning', 'general'],
+    icon: Kanban,
+    defaultData: () => ({
+      label: 'To do',
+      nodeType: 'frame',
+      params: { caption: 'WIP 3' },
+      icon: 'clipboard',
+      style: { borderStyle: 'solid', fillColor: '#f8fafc', borderColor: '#cbd5e1' },
+    }),
+  },
+  {
+    id: 'plan.card',
+    nodeType: 'resource',
+    label: 'Work item',
+    description: 'A card with owner, size, and status.',
+    category: 'Planning',
+    kits: ['planning', 'general'],
+    icon: ListChecks,
+    defaultData: () => ({
+      label: 'Work item',
+      nodeType: 'resource',
+      params: { resourceType: 'Story', status: 'Ready' },
+      attributes: [
+        { id: newId(), label: 'Owner', value: '' },
+        { id: newId(), label: 'Size', value: '3' },
+      ],
+      icon: 'check',
+    }),
+  },
+  {
+    id: 'plan.activity',
+    nodeType: 'resource',
+    label: 'Activity / epic',
+    description: 'Backbone step of a story map; user tasks hang beneath it.',
+    category: 'Planning',
+    kits: ['planning', 'general'],
+    icon: Milestone,
+    defaultData: () => ({
+      label: 'Activity',
+      nodeType: 'resource',
+      params: { resourceType: 'Activity' },
+      attributes: [],
+      icon: 'flag',
+      style: { iconBg: '#fef3c7', borderColor: '#f59e0b' },
+    }),
+  },
+  {
+    id: 'plan.release',
+    nodeType: 'frame',
+    label: 'Release slice',
+    description: 'Horizontal band grouping the tasks that ship together.',
+    category: 'Planning',
+    kits: ['planning', 'general'],
+    icon: Rocket,
+    defaultData: () => ({
+      label: 'Release 1',
+      nodeType: 'frame',
+      params: { caption: '' },
+      icon: 'rocket',
+      style: { borderStyle: 'dashed', fillColor: '#f0fdf4', borderColor: '#86efac' },
+    }),
+  },
+
+  // ── UML class ──
+  {
+    id: 'uml.class',
+    nodeType: 'record',
+    label: 'Class',
+    description: 'Attributes and operations; connect with inheritance, composition, or association.',
+    category: 'UML',
+    kits: ['uml', 'general'],
+    icon: Braces,
+    defaultData: () => ({
+      label: 'ClassName',
+      nodeType: 'record',
+      params: { recordKind: 'Class', namespace: '' },
+      fields: [{ id: newId(), name: '- id', dataType: 'UUID', key: 'none' }],
+      operations: [{ id: newId(), signature: '+ describe(): string' }],
+      icon: 'code-tags',
+    }),
+  },
+  {
+    id: 'uml.interface',
+    nodeType: 'record',
+    label: 'Interface',
+    description: 'Operations only; classes realise it with a dotted open-triangle edge.',
+    category: 'UML',
+    kits: ['uml', 'general'],
+    icon: Blocks,
+    defaultData: () => ({
+      label: 'InterfaceName',
+      nodeType: 'record',
+      params: { recordKind: 'Interface', namespace: '«interface»' },
+      fields: [],
+      operations: [{ id: newId(), signature: '+ execute(): void' }],
+      icon: 'code-tags',
+      style: { borderStyle: 'dashed' },
+    }),
+  },
+  {
+    id: 'uml.enum',
+    nodeType: 'record',
+    label: 'Enum',
+    description: 'A fixed set of values.',
+    category: 'UML',
+    kits: ['uml', 'general'],
+    icon: ListChecks,
+    defaultData: () => ({
+      label: 'EnumName',
+      nodeType: 'record',
+      params: { recordKind: 'Enum', namespace: '«enumeration»' },
+      fields: [
+        { id: newId(), name: 'ACTIVE', dataType: '', key: 'none' },
+        { id: newId(), name: 'INACTIVE', dataType: '', key: 'none' },
+      ],
+      operations: [],
+      icon: 'tag',
+    }),
+  },
+
+  // ── Architecture / deployment (infrastructure kit) ──
+  {
+    id: 'infra.service',
+    nodeType: 'resource',
+    label: 'Service / API',
+    description: 'A deployable service, API, or worker.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: Cloud,
+    defaultData: () => ({
+      label: 'Service',
+      nodeType: 'resource',
+      params: { resourceType: 'Service', environment: 'Production', status: 'Healthy' },
+      attributes: [{ id: newId(), label: 'Port', value: '8080' }],
+      icon: 'cloud',
+    }),
+  },
+  {
+    id: 'infra.queue',
+    nodeType: 'resource',
+    label: 'Queue / topic',
+    description: 'Message queue, topic, or event stream.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: MessageSquare,
+    defaultData: () => ({
+      label: 'Queue',
+      nodeType: 'resource',
+      params: { resourceType: 'Queue', environment: 'Production', status: 'Healthy' },
+      attributes: [{ id: newId(), label: 'Topic', value: '' }],
+      icon: 'message',
+      style: { iconBg: '#fef3c7' },
+    }),
+  },
+  {
+    id: 'infra.storage',
+    nodeType: 'resource',
+    label: 'Object storage',
+    description: 'Bucket, file share, or data lake zone.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: HardDrive,
+    defaultData: () => ({
+      label: 'Storage',
+      nodeType: 'resource',
+      params: { resourceType: 'Object storage', environment: 'Production', status: 'Healthy' },
+      attributes: [{ id: newId(), label: 'Bucket', value: '' }],
+      icon: 'folder',
+    }),
+  },
+  {
+    id: 'infra.client',
+    nodeType: 'resource',
+    label: 'Client',
+    description: 'Browser, mobile app, or other consumer of the system.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: MonitorSmartphone,
+    defaultData: () => ({
+      label: 'Client',
+      nodeType: 'resource',
+      params: { resourceType: 'Client' },
+      attributes: [],
+      icon: 'user',
+    }),
+  },
+  {
+    id: 'infra.external',
+    nodeType: 'resource',
+    label: 'External system',
+    description: 'Third-party or legacy system outside your control.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: ArrowRightLeft,
+    defaultData: () => ({
+      label: 'External system',
+      nodeType: 'resource',
+      params: { resourceType: 'External' },
+      attributes: [],
+      icon: 'globe',
+      style: { borderStyle: 'dashed' },
+    }),
+  },
+  {
+    id: 'infra.host',
+    nodeType: 'frame',
+    label: 'Host / node',
+    description: 'VM, Kubernetes node, or physical host; artifacts run inside it.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: Container,
+    defaultData: () => ({
+      label: 'Host',
+      nodeType: 'frame',
+      params: { caption: '' },
+      icon: 'server',
+      style: { borderStyle: 'solid', fillColor: '#f8fafc', borderColor: '#94a3b8' },
+    }),
+  },
+  {
+    id: 'infra.data-layer',
+    nodeType: 'frame',
+    label: 'Data layer',
+    description: 'Medallion tier (bronze, silver, gold) or any data platform zone.',
+    category: 'Infrastructure',
+    kits: ['infrastructure', 'general'],
+    icon: SquareStack,
+    defaultData: () => ({
+      label: 'Bronze',
+      nodeType: 'frame',
+      params: { caption: 'raw' },
+      icon: 'database',
+      style: { borderStyle: 'solid', fillColor: '#fff7ed', borderColor: '#fdba74' },
+    }),
+  },
 ]
 
 export function getCatalogEntry(id: string): NodeCatalogEntry | undefined {
@@ -643,11 +999,14 @@ export function getCatalogEntryByNodeType(nodeType: NodeTypeId): NodeCatalogEntr
 }
 
 const UNIVERSAL_CATALOG_IDS = new Set(['note', 'frame', 'media'])
+/** Workflow-only definitions that a state machine also needs (initial/final/choice). */
+const STATE_SHARED_IDS = new Set(['start', 'end', 'decision'])
 
 export function catalogEntriesForKit(kind: DiagramKind): NodeCatalogEntry[] {
   return nodeCatalog.filter((entry) => {
     if (kind === 'general') return true
     if (UNIVERSAL_CATALOG_IDS.has(entry.id)) return true
+    if (kind === 'state' && STATE_SHARED_IDS.has(entry.id)) return true
     if (entry.kits) return entry.kits.includes(kind)
     return kind === 'workflow'
   })
@@ -681,12 +1040,24 @@ export function inferCatalogDefinitionId(
       : 'org.person'
   }
   if (data.nodeType === 'record') {
-    return String(data.params.recordKind ?? '').toLowerCase() === 'view'
-      ? 'database.view'
-      : 'database.table'
+    const recordKind = String(data.params.recordKind ?? '').toLowerCase()
+    if (recordKind === 'view') return 'database.view'
+    if (recordKind === 'class') return 'uml.class'
+    if (recordKind === 'interface') return 'uml.interface'
+    if (recordKind === 'enum') return 'uml.enum'
+    return 'database.table'
   }
   if (data.nodeType === 'resource') {
     const resourceType = String(data.params.resourceType ?? '').toLowerCase()
+    if (resourceType === 'state') return 'state.state'
+    if (resourceType === 'story' || resourceType === 'task') return 'plan.card'
+    if (resourceType === 'activity') return 'plan.activity'
+    if (resourceType === 'queue') return 'infra.queue'
+    if (resourceType.includes('storage')) return 'infra.storage'
+    if (resourceType === 'client') return 'infra.client'
+    if (resourceType === 'external') return 'infra.external'
+    if (resourceType === 'service') return 'infra.service'
+    if (!resourceType && diagramKind !== 'organization') return 'general.component'
     if (resourceType.includes('firewall')) return 'infra.firewall'
     if (resourceType.includes('load balancer')) return 'infra.load-balancer'
     if (resourceType.includes('database')) return 'infra.database-server'
@@ -701,6 +1072,8 @@ export function inferCatalogDefinitionId(
   if (data.nodeType === 'frame') {
     if (diagramKind === 'organization') return 'org.department'
     if (diagramKind === 'infrastructure') return 'infra.network-zone'
+    if (diagramKind === 'state') return 'state.composite'
+    if (diagramKind === 'planning') return 'plan.column'
   }
   return getCatalogEntryByNodeType(data.nodeType)?.id ?? data.nodeType
 }

@@ -120,7 +120,8 @@ export function validateFlow(graph: FlowGraph, diagramKind: DiagramKind = 'workf
     incoming.set(edge.target, (incoming.get(edge.target) ?? 0) + 1)
   }
 
-  if (diagramKind !== 'workflow') {
+  // State machines share the workflow checks: an initial state, reachability, dead ends.
+  if (diagramKind !== 'workflow' && diagramKind !== 'state') {
     if (diagramKind === 'organization') issues.push(...organizationIssues(graph, outgoing))
     if (diagramKind === 'database') issues.push(...databaseIssues(graph))
     return issues
