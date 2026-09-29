@@ -33,6 +33,7 @@ import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 
 import { ConfirmDialog, type ConfirmRequest } from '@/components/dialogs/ConfirmDialog'
 import { GenerateAiDialog, type AiDialogMode } from '@/components/dialogs/GenerateAiDialog'
+import { TemplateBrowserDialog } from '@/components/dialogs/TemplateBrowserDialog'
 import { ImportMermaidDialog } from '@/components/dialogs/ImportMermaidDialog'
 import { OpenWorkflowDialog } from '@/components/dialogs/OpenWorkflowDialog'
 import { ValidationMenu } from '@/components/layout/ValidationMenu'
@@ -61,7 +62,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { templateCategories } from '@/data/templates'
 import { diagramKindOf } from '@/data/diagramKits'
 import type { FlowDirection } from '@/types/workflow'
 import {
@@ -153,6 +153,7 @@ export function EditorToolbar({
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null)
   const [openOpen, setOpenOpen] = useState(false)
   const [mermaidOpen, setMermaidOpen] = useState(false)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
   const [aiOpen, setAiOpen] = useState(false)
   const [aiMode, setAiMode] = useState<AiDialogMode>('generate')
   // Remount the AI dialog per opening so it starts in the requested mode.
@@ -256,27 +257,9 @@ export function EditorToolbar({
           >
             New
           </DropdownMenuItem>
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>New from template</DropdownMenuSubTrigger>
-            <DropdownMenuSubContent>
-              {templateCategories.map((group) => (
-                <DropdownMenuSub key={group.category}>
-                  <DropdownMenuSubTrigger>{group.category}</DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="max-h-[70vh] overflow-y-auto">
-                    {group.templates.map((template) => (
-                      <DropdownMenuItem
-                        key={template.id}
-                        title={template.description}
-                        onSelect={() => guarded(`Load “${template.name}”`, () => loadTemplate(template))}
-                      >
-                        {template.name}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
-              ))}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
+          <DropdownMenuItem onSelect={() => setTemplatesOpen(true)}>
+            New from template…
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setOpenOpen(true)}>Open…</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={handleSave}>
@@ -682,6 +665,13 @@ export function EditorToolbar({
       </Dialog>
 
       <ImportMermaidDialog open={mermaidOpen} onOpenChange={setMermaidOpen} />
+      <TemplateBrowserDialog
+        open={templatesOpen}
+        onOpenChange={setTemplatesOpen}
+        onSelect={(template) =>
+          guarded(`Load “${template.name}”`, () => loadTemplate(template))
+        }
+      />
       <GenerateAiDialog key={aiOpenCount} open={aiOpen} onOpenChange={setAiOpen} mode={aiMode} />
 
       <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
